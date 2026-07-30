@@ -1,341 +1,402 @@
-// === DADOS PRÉ-CONFIGURADOS ===
+// === DADOS ===
 const ESPECIES_DEFAULT = [
-    { nome: "Galinha", dias: 21, temp: 37.5, umidade: 60 },
-    { nome: "Codorna", dias: 17, temp: 37.8, umidade: 60 },
-    { nome: "Pato", dias: 28, temp: 37.5, umidade: 65 },
-    { nome: "Ganso", dias: 30, temp: 37.5, umidade: 70 },
-    { nome: "Marreco", dias: 35, temp: 37.2, umidade: 65 },
-    { nome: "Pavão", dias: 28, temp: 37.5, umidade: 60 },
-    { nome: "Peru", dias: 28, temp: 37.5, umidade: 60 },
-    { nome: "Calopsita", dias: 18, temp: 37.3, umidade: 55 }
+    { id: 'd1', nome: "Galinha", dias: 21, temp: 37.5, umidade: 60, padrao: true },
+    { id: 'd2', nome: "Codorna", dias: 17, temp: 37.8, umidade: 60, padrao: true },
+    { id: 'd3', nome: "Pato", dias: 28, temp: 37.5, umidade: 65, padrao: true },
+    { id: 'd4', nome: "Ganso", dias: 30, temp: 37.5, umidade: 70, padrao: true },
+    { id: 'd5', nome: "Marreco", dias: 35, temp: 37.2, umidade: 65, padrao: true },
+    { id: 'd6', nome: "Pavão", dias: 28, temp: 37.5, umidade: 60, padrao: true },
+    { id: 'd7', nome: "Peru", dias: 28, temp: 37.5, umidade: 60, padrao: true },
+    { id: 'd8', nome: "Calopsita", dias: 18, temp: 37.3, umidade: 55, padrao: true }
 ];
 
 const ETAPAS_INCUBACAO = [
     { titulo: "Antes de Ligar a Chocadeira", desc: "Configuração inicial e limpeza" },
     { titulo: "Preparando os Ovos", desc: "Seleção, ovoscopia prévia e armazenamento" },
-    { titulo: "Antes de utilizar a chocadeira", desc: "Estabilização de temperatura" },
-    { titulo: "Acompanhamento Dia a Dia", desc: "Viragem de ovos e umidade" },
+    { titulo: "Estabilização da Chocadeira", desc: "Ajuste fino de temperatura antes de colocar" },
+    { titulo: "Acompanhamento Diário", desc: "Viragem de ovos e controle de umidade" },
     { titulo: "Ovoscopia Crítica", desc: "Exames nos dias 7 e 14" },
     { titulo: "Eclosão e Nascimento", desc: "Preparação do pinteiro para os pintinhos" }
 ];
 
-// === ESTADO E GERENCIAMENTO DE DADOS ===
 let state = {
     etapasConcluidas: [],
     lotes: [],
+    customSpecies: [],
     apiKey: ""
 };
 
+let alarmInterval = null;
+let alarmAudioCtx = null;
+let alarmOscillator = null;
+let alarmGain = null;
+let isAlarmPlaying = false;
+
 function loadState() {
     try {
-        const saved = localStorage.getItem('incubapro_state');
+        const saved = localStorage.getItem('incubapro_state_v2');
         if (saved) state = JSON.parse(saved);
-        // Garantir que etapasConcluidas sempre exista
         if(!Array.isArray(state.etapasConcluidas)) state.etapasConcluidas = [];
-    } catch (e) { console.error("Erro ao carregar estado", e); }
+        if(!Array.isArray(state.customSpecies)) state.customSpecies = [];
+    } catch (e) { console.error(e); }
 }
 
 function saveState() {
-    localStorage.setItem('incubapro_state', JSON.stringify(state));
+    localStorage.setItem('incubapro_state_v2', JSON.stringify(state));
+}
+
+function getAllSpecies() {
+    return [...ESPECIES_DEFAULT, ...state.customSpecies];
 }
 
 // === NAVEGAÇÃO ===
 const navButtons = document.querySelectorAll('.nav-btn');
 const views = document.querySelectorAll('.view');
 const headerTitle = document.getElementById('header-title');
-
-const viewTitles = {
-    home: "IncubaPro",
-    lotes: "Meus Lotes",
-    ia: "IA Assistente",
-    calendario: "Calendário",
-    especies: "Tabela de Espécies"
-};
+const viewTitles = { home: "IncubaPro", lotes: "Meus Lotes", ia: "IA Assistente", calendario: "Calendário", especies: "Espécies" };
 
 navButtons.forEach(btn => {
     btn.addEventListener('click', () => {
         const targetView = btn.dataset.view;
-        
         navButtons.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        
         views.forEach(v => v.classList.remove('active'));
         document.getElementById(`view-${targetView}`).classList.add('active');
-        
         headerTitle.textContent = viewTitles[targetView];
-
-        // Atualiza conteúdos dinâmicos ao entrar na tela
         if(targetView === 'lotes') renderLotes();
         if(targetView === 'calendario') renderCalendario();
         if(targetView === 'especies') renderEspecies();
     });
 });
 
-// === TELA: INÍCIO (LINHA DO TEMPO) ===
+// === DASHBOARD (INÍCIO) ===
+function renderDashboard() {
+    const loteAtivo = state.lotes.find(l => {
+        const inicio = new Date(l.dataInicio + "T00:00:00");
+        const fim = new Date(inicio.getTime() + (l.diasIncubacao * 24 * 60 * 60 * 1000));
+        return new Date() <= fim;
+    });
+
+    const statusBadge = document.querySelector('.badge-status');
+    const heroTitle = document.getElementById('dash-lote-name');
+    
+    if (loteAtivo) {
+        statusBadge.textContent = 'INCUBADORA ATIVA';
+        statusBadge.className = 'badge-status active';
+        heroTitle.textContent = loteAtivo.nome;
+        
+        document.getElementById('dash-species').textContent = loteAtivo.especieNome;
+        document.getElementById('dash-temp').textContent = loteAtivo.temp.toFixed(1);
+        document.getElementById('dash-humid').textContent = loteAtivo.umidade + '%';
+
+        const inicio = new Date(loteAtivo.dataInicio + "T00:00:00");
+        const hoje = new Date(); hoje.setHours(0,0,0,0);
+        const diasPassados = Math.floor((hoje - inicio) / (1000 * 60 * 60 * 24));
+        const diasRestantes = Math.max(0, loteAtivo.diasIncubacao - diasPassados);
+        
+        document.getElementById('dash-days-left').textContent = diasRestantes + ' dias';
+        
+        const progresso = Math.min(100, Math.max(0, (diasPassados / loteAtivo.diasIncubacao) * 100));
+        document.getElementById('dash-progress-bar').style.width = progresso + '%';
+    } else {
+        statusBadge.textContent = 'NENHUM LOTE ATIVO';
+        statusBadge.className = 'badge-status inactive';
+        heroTitle.textContent = 'Cadastre um lote';
+        document.getElementById('dash-species').textContent = '---';
+        document.getElementById('dash-temp').textContent = '--';
+        document.getElementById('dash-humid').textContent = '--%';
+        document.getElementById('dash-days-left').textContent = '-- dias';
+        document.getElementById('dash-progress-bar').style.width = '0%';
+    }
+}
+
+// === ALARME SONORO ALTO ===
+const btnAlarm = document.getElementById('btn-alarm');
+const alarmText = document.getElementById('alarm-timer-text');
+let alarmSeconds = 7200; // 2 horas
+
+btnAlarm.addEventListener('click', () => {
+    if (isAlarmPlaying) {
+        stopAlarm();
+    } else if (alarmInterval) {
+        clearInterval(alarmInterval);
+        alarmInterval = null;
+        btnAlarm.textContent = 'INICIAR';
+        btnAlarm.classList.remove('active');
+        alarmText.textContent = 'Toque para iniciar (02:00h)';
+        alarmSeconds = 7200;
+    } else {
+        alarmInterval = setInterval(() => {
+            alarmSeconds--;
+            const h = Math.floor(alarmSeconds / 3600).toString().padStart(2,'0');
+            const m = Math.floor((alarmSeconds % 3600) / 60).toString().padStart(2,'0');
+            const s = (alarmSeconds % 60).toString().padStart(2,'0');
+            alarmText.textContent = `Alarme em ${h}:${m}:${s}`;
+            
+            if (alarmSeconds <= 0) {
+                clearInterval(alarmInterval);
+                alarmInterval = null;
+                triggerLoudAlarm();
+            }
+        }, 1000);
+        btnAlarm.textContent = 'CANCELAR';
+        btnAlarm.classList.add('active');
+    }
+});
+
+function triggerLoudAlarm() {
+    isAlarmPlaying = true;
+    btnAlarm.textContent = 'SILENCIAR';
+    btnAlarm.classList.add('active');
+    alarmText.textContent = 'VIRE OS OVOS AGORA! ALARME TOCANDO.';
+
+    alarmAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    alarmGain = alarmAudioCtx.createGain();
+    alarmGain.gain.value = 1; // Volume máximo
+    alarmGain.connect(alarmAudioCtx.destination);
+
+    function playBeep() {
+        if (!isAlarmPlaying) return;
+        alarmOscillator = alarmAudioCtx.createOscillator();
+        alarmOscillator.type = 'square'; // Som mais agudo e irritante para acordar
+        alarmOscillator.frequency.setValueAtTime(1000, alarmAudioCtx.currentTime); // Frequência alta
+        alarmOscillator.connect(alarmGain);
+        alarmOscillator.start();
+        
+        setTimeout(() => {
+            alarmOscillator.stop();
+            if(isAlarmPlaying) setTimeout(playBeep, 500); // Pausa entre beeps
+        }, 500);
+    }
+    playBeep();
+}
+
+function stopAlarm() {
+    isAlarmPlaying = false;
+    if (alarmOscillator) alarmOscillator.stop();
+    if (alarmAudioCtx) alarmAudioCtx.close();
+    btnAlarm.textContent = 'INICIAR';
+    btnAlarm.classList.remove('active');
+    alarmText.textContent = 'Toque para iniciar (02:00h)';
+    alarmSeconds = 7200;
+}
+
+// === TIMELINE ===
 function renderTimeline() {
     const list = document.getElementById('timeline-steps');
-    list.innerHTML = '';
-    
-    ETAPAS_INCUBACAO.forEach((etapa, index) => {
-        const isCompleted = state.etapasConcluidas.includes(index);
-        const li = document.createElement('li');
-        li.className = isCompleted ? 'completed' : '';
-        li.innerHTML = `<h3>${etapa.titulo}</h3><p>${etapa.desc}</p>`;
-        
+    list.innerHTML = ETAPAS_INCUBACAO.map((etapa, i) => {
+        const isCompleted = state.etapasConcluidas.includes(i);
+        return `<li class="${isCompleted ? 'completed' : ''}" data-index="${i}"><h3>${etapa.titulo}</h3><p>${etapa.desc}</p></li>`;
+    }).join('');
+
+    list.querySelectorAll('li').forEach(li => {
         li.addEventListener('click', () => {
-            if (isCompleted) {
-                state.etapasConcluidas = state.etapasConcluidas.filter(i => i !== index);
-            } else {
-                state.etapasConcluidas.push(index);
-            }
+            const i = parseInt(li.dataset.index);
+            if (state.etapasConcluidas.includes(i)) state.etapasConcluidas = state.etapasConcluidas.filter(x => x !== i);
+            else state.etapasConcluidas.push(i);
             saveState();
             renderTimeline();
         });
-        
-        list.appendChild(li);
     });
-    
-    updateProgressRing();
 }
 
-function updateProgressRing() {
-    const total = ETAPAS_INCUBACAO.length;
-    const done = state.etapasConcluidas.length;
-    const percent = Math.round((done / total) * 100);
-    
-    document.getElementById('progress-percent').textContent = `${percent}%`;
-    
-    const circle = document.getElementById('progress-ring-fill');
-    const circumference = 2 * Math.PI * 54; // Raio de 54
-    const offset = circumference - (percent / 100) * circumference;
-    circle.style.strokeDashoffset = offset;
-}
-
-// === TELA: LOTES ===
+// === LOTES ===
 const modalLote = document.getElementById('modal-lote');
 const selectEspecie = document.getElementById('lote-especie');
-const customFields = document.getElementById('custom-species-fields');
 
 function initLotesForm() {
-    // Preencher select
-    ESPECIES_DEFAULT.forEach(e => {
+    getAllSpecies().forEach(e => {
         const opt = document.createElement('option');
-        opt.value = e.nome;
+        opt.value = e.id;
         opt.textContent = `${e.nome} (${e.dias} dias)`;
         selectEspecie.appendChild(opt);
     });
-    
     const optCustom = document.createElement('option');
-    optCustom.value = "custom";
-    optCustom.textContent = "Outra espécie (Personalizada)";
+    optCustom.value = "custom"; optCustom.textContent = "Outra (Personalizada)";
     selectEspecie.appendChild(optCustom);
 
-    // Toggle campos personalizados
     selectEspecie.addEventListener('change', () => {
-        customFields.style.display = selectEspecie.value === 'custom' ? 'block' : 'none';
+        document.getElementById('custom-species-fields').style.display = selectEspecie.value === 'custom' ? 'block' : 'none';
     });
-
-    // Setar data de hoje como padrão
     document.getElementById('lote-data').valueAsDate = new Date();
 }
 
 function renderLotes() {
     const container = document.getElementById('lotes-list');
-    container.innerHTML = '';
-    
-    if (state.lotes.length === 0) {
-        container.innerHTML = '<p style="text-align:center; color:var(--text-secondary); margin-top:40px;">Nenhum lote cadastrado.</p>';
-        return;
-    }
+    if (state.lotes.length === 0) { container.innerHTML = '<p style="text-align:center; color:var(--text-secondary); margin-top:40px;">Nenhum lote cadastrado.</p>'; return; }
 
-    state.lotes.forEach((lote, index) => {
-        const hoje = new Date();
+    container.innerHTML = state.lotes.map((lote, index) => {
         const inicio = new Date(lote.dataInicio + "T00:00:00");
-        const diaAtual = Math.floor((hoje - inicio) / (1000 * 60 * 60 * 24));
+        const diaAtual = Math.floor((new Date() - inicio) / (1000 * 60 * 60 * 24));
         const diasRestantes = Math.max(0, lote.diasIncubacao - diaAtual);
         const progresso = Math.min(100, Math.max(0, (diaAtual / lote.diasIncubacao) * 100));
-
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
+        return `
+        <div class="card">
             <div class="card-header">
                 <span class="card-title">${lote.nome}</span>
-                <span class="card-badge">${diasRestantes > 0 ? diasRestantes + ' dias restantes' : 'Pronto para eclosão'}</span>
+                <span class="card-badge">${diasRestantes > 0 ? diasRestantes + ' dias' : 'Pronto'}</span>
             </div>
-            <div class="card-info">Espécie: ${lote.especieNome} | Ovos: ${lote.qtdOvos}</div>
-            <div class="card-info">Temp: ${lote.temp}°C | Umid: ${lote.umidade}%</div>
-            <div class="progress-bar-bg">
-                <div class="progress-bar-fill" style="width: ${progresso}%"></div>
-            </div>
-            <button class="btn-delete" data-index="${index}">Excluir Lote</button>
-        `;
-        
-        card.querySelector('.btn-delete').addEventListener('click', (e) => {
-            e.stopPropagation();
-            if(confirm("Deseja realmente excluir este lote?")) {
-                state.lotes.splice(index, 1);
-                saveState();
-                renderLotes();
-            }
-        });
-
-        container.appendChild(card);
-    });
+            <div class="card-info"><span>${lote.especieNome}</span><span>${lote.qtdOvos} Ovos</span></div>
+            <div class="card-info"><span>Temp: ${lote.temp}°C</span><span>Umid: ${lote.umidade}%</span></div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${progresso}%"></div></div>
+            <button class="btn-delete" onclick="deleteLote(${index})">Excluir Lote</button>
+        </div>`;
+    }).join('');
 }
 
-document.getElementById('btn-add-lote').addEventListener('click', () => {
-    modalLote.classList.add('show');
-});
-document.getElementById('close-lote').addEventListener('click', () => {
-    modalLote.classList.remove('show');
-});
+function deleteLote(index) {
+    if(confirm("Excluir este lote?")) { state.lotes.splice(index, 1); saveState(); renderLotes(); renderDashboard(); }
+}
+
+document.getElementById('btn-add-lote').addEventListener('click', () => modalLote.classList.add('show'));
+document.getElementById('close-lote').addEventListener('click', () => modalLote.classList.remove('show'));
 
 document.getElementById('btn-save-lote').addEventListener('click', () => {
     const nome = document.getElementById('lote-nome').value.trim();
     const especieVal = selectEspecie.value;
     const qtd = document.getElementById('lote-qtd').value;
     const data = document.getElementById('lote-data').value;
-
-    if (!nome || !especieVal || !qtd || !data) {
-        alert("Preencha todos os campos obrigatórios.");
-        return;
-    }
+    if (!nome || !especieVal || !qtd || !data) return alert("Preencha todos os campos.");
 
     let dadosEspecie;
     if (especieVal === 'custom') {
-        const cNome = document.getElementById('custom-name').value.trim();
-        const cDias = parseInt(document.getElementById('custom-days').value);
-        const cTemp = parseFloat(document.getElementById('custom-temp').value);
-        const cUmid = parseInt(document.getElementById('custom-humid').value);
-        if(!cNome || !cDias || !cTemp || !cUmid) {
-            alert("Preencha os dados da espécie personalizada.");
-            return;
-        }
-        dadosEspecie = { nome: cNome, dias: cDias, temp: cTemp, umidade: cUmid };
+        dadosEspecie = { nome: document.getElementById('custom-name').value, dias: parseInt(document.getElementById('custom-days').value), temp: parseFloat(document.getElementById('custom-temp').value), umidade: parseInt(document.getElementById('custom-humid').value) };
+        if(!dadosEspecie.nome || !dadosEspecie.dias) return alert("Preencha os dados da espécie.");
     } else {
-        dadosEspecie = ESPECIES_DEFAULT.find(e => e.nome === especieVal);
+        dadosEspecie = getAllSpecies().find(e => e.id === especieVal);
     }
 
-    state.lotes.push({
-        id: Date.now(),
-        nome: nome,
-        especieNome: dadosEspecie.nome,
-        diasIncubacao: dadosEspecie.dias,
-        temp: dadosEspecie.temp,
-        umidade: dadosEspecie.umidade,
-        qtdOvos: parseInt(qtd),
-        dataInicio: data
-    });
-
-    saveState();
-    modalLote.classList.remove('show');
-    
-    // Limpar formulário
-    document.getElementById('lote-nome').value = '';
-    document.getElementById('lote-qtd').value = '';
-    selectEspecie.value = '';
-    customFields.style.display = 'none';
-    
-    renderLotes();
+    state.lotes.push({ id: Date.now(), nome, especieNome: dadosEspecie.nome, diasIncubacao: dadosEspecie.dias, temp: dadosEspecie.temp, umidade: dadosEspecie.umidade, qtdOvos: parseInt(qtd), dataInicio: data });
+    saveState(); modalLote.classList.remove('show'); renderLotes(); renderDashboard(); renderCalendario();
+    document.getElementById('lote-nome').value = ''; document.getElementById('lote-qtd').value = ''; selectEspecie.value = '';
 });
 
-// === TELA: CALENDÁRIO ===
-function renderCalendario() {
-    const container = document.getElementById('calendar-events');
-    container.innerHTML = '';
-    
-    if (state.lotes.length === 0) {
-        container.innerHTML = '<p style="text-align:center; color:var(--text-secondary); margin-top:40px;">Nenhum lote ativo para exibir no calendário.</p>';
-        return;
-    }
+// === ESPÉCIES (CRUD COMPLETO) ===
+const modalSpecies = document.getElementById('modal-species');
 
-    let eventos = [];
-
-    state.lotes.forEach(lote => {
-        const inicio = new Date(lote.dataInicio + "T00:00:00");
-        
-        // Ovoscopia Dia 7
-        let dataEv = new Date(inicio);
-        dataEv.setDate(dataEv.getDate() + 7);
-        eventos.push({ data: dataEv, lote: lote.nome, tipo: 'Ovoscopia (Dia 7)', tag: 'tag-ovoscopia' });
-
-        // Ovoscopia Dia 14
-        dataEv = new Date(inicio);
-        dataEv.setDate(dataEv.getDate() + 14);
-        eventos.push({ data: dataEv, lote: lote.nome, tipo: 'Ovoscopia (Dia 14)', tag: 'tag-ovoscopia' });
-
-        // Parada de rolagem (3 dias antes do fim)
-        dataEv = new Date(inicio);
-        dataEv.setDate(dataEv.getDate() + (lote.diasIncubacao - 3));
-        eventos.push({ data: dataEv, lote: lote.nome, tipo: 'Parada de Rolagem', tag: 'tag-parada' });
-
-        // Eclosão
-        dataEv = new Date(inicio);
-        dataEv.setDate(dataEv.getDate() + lote.diasIncubacao);
-        eventos.push({ data: dataEv, lote: lote.nome, tipo: 'Eclosão Prevista', tag: 'tag-eclosao' });
-    });
-
-    // Ordenar eventos por data
-    eventos.sort((a, b) => a.data - b.data);
-
-    // Filtrar apenas eventos futuros ou de hoje
-    const hoje = new Date(); hoje.setHours(0,0,0,0);
-    eventos = eventos.filter(e => e.data >= hoje);
-
-    if(eventos.length === 0) {
-        container.innerHTML = '<p style="text-align:center; color:var(--text-secondary); margin-top:40px;">Nenhum evento futuro encontrado.</p>';
-        return;
-    }
-
-    eventos.forEach(ev => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        const dataFormatada = ev.data.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
-        card.innerHTML = `
-            <div class="event-date">${dataFormatada}</div>
-            <div class="event-lote-name">Lote: ${ev.lote}</div>
-            <div><span class="event-tag ${ev.tag}">${ev.tipo}</span></div>
-        `;
-        container.appendChild(card);
-    });
-}
-
-// === TELA: ESPÉCIES ===
 function renderEspecies() {
     const tbody = document.getElementById('especies-tbody');
-    tbody.innerHTML = '';
-    ESPECIES_DEFAULT.forEach(e => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${e.nome}</td><td>${e.dias}</td><td>${e.temp}</td><td>${e.umidade}</td>`;
-        tbody.appendChild(tr);
-    });
+    const all = getAllSpecies();
+    tbody.innerHTML = all.map(e => `
+        <tr>
+            <td>${e.nome}</td>
+            <td>${e.dias}</td>
+            <td>${e.temp}°C</td>
+            <td>${e.umidade}%</td>
+            <td>
+                ${!e.padrao ? `<button class="btn-icon" onclick="editSpecies('${e.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                <button class="btn-icon del" onclick="deleteSpecies('${e.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : '<span style="color:var(--text-secondary); font-size:0.75rem">PADRÃO</span>'}
+            </td>
+        </tr>
+    `).join('');
 }
 
-// === CONFIGURAÇÕES & API KEY SEGURA ===
+window.editSpecies = function(id) {
+    const sp = state.customSpecies.find(s => s.id === id);
+    if(!sp) return;
+    document.getElementById('species-modal-title').textContent = 'Editar Espécie';
+    document.getElementById('edit-species-id').value = id;
+    document.getElementById('sp-nome').value = sp.nome;
+    document.getElementById('sp-dias').value = sp.dias;
+    document.getElementById('sp-temp').value = sp.temp;
+    document.getElementById('sp-humid').value = sp.umidade;
+    modalSpecies.classList.add('show');
+};
+
+window.deleteSpecies = function(id) {
+    if(confirm('Excluir esta espécie personalizada?')) {
+        state.customSpecies = state.customSpecies.filter(s => s.id !== id);
+        saveState(); renderEspecies(); updateLotesSelect();
+    }
+};
+
+document.getElementById('btn-add-species').addEventListener('click', () => {
+    document.getElementById('species-modal-title').textContent = 'Nova Espécie';
+    document.getElementById('edit-species-id').value = '';
+    document.getElementById('sp-nome').value = '';
+    document.getElementById('sp-dias').value = '';
+    document.getElementById('sp-temp').value = '';
+    document.getElementById('sp-humid').value = '';
+    modalSpecies.classList.add('show');
+});
+
+document.getElementById('close-species').addEventListener('click', () => modalSpecies.classList.remove('show'));
+
+document.getElementById('btn-save-species').addEventListener('click', () => {
+    const id = document.getElementById('edit-species-id').value;
+    const data = {
+        id: id || 'c' + Date.now(),
+        nome: document.getElementById('sp-nome').value.trim(),
+        dias: parseInt(document.getElementById('sp-dias').value),
+        temp: parseFloat(document.getElementById('sp-temp').value),
+        umidade: parseInt(document.getElementById('sp-humid').value),
+        padrao: false
+    };
+    if(!data.nome || !data.dias || !data.temp) return alert('Preencha os campos corretamente.');
+
+    if(id) {
+        const index = state.customSpecies.findIndex(s => s.id === id);
+        if(index !== -1) state.customSpecies[index] = data;
+    } else {
+        state.customSpecies.push(data);
+    }
+    
+    saveState(); modalSpecies.classList.remove('show'); renderEspecies(); updateLotesSelect();
+});
+
+function updateLotesSelect() {
+    const val = selectEspecie.value;
+    selectEspecie.innerHTML = '<option value="">Selecione...</option>';
+    initLotesForm();
+    selectEspecie.value = val;
+}
+
+// === CALENDÁRIO ===
+function renderCalendario() {
+    const container = document.getElementById('calendar-events');
+    if (state.lotes.length === 0) { container.innerHTML = '<p style="text-align:center; color:var(--text-secondary); margin-top:40px;">Nenhum lote ativo.</p>'; return; }
+
+    let eventos = [];
+    state.lotes.forEach(lote => {
+        const inicio = new Date(lote.dataInicio + "T00:00:00");
+        const addEv = (dias, tipo, tag) => { let d = new Date(inicio); d.setDate(d.getDate() + dias); eventos.push({ data: d, lote: lote.nome, tipo, tag }); };
+        addEv(7, 'Ovoscopia (Dia 7)', 'tag-ovoscopia');
+        addEv(14, 'Ovoscopia (Dia 14)', 'tag-ovoscopia');
+        addEv(lote.diasIncubacao - 3, 'Parada de Rolagem', 'tag-parada');
+        addEv(lote.diasIncubacao, 'Eclosão Prevista', 'tag-eclosao');
+    });
+
+    eventos.sort((a, b) => a.data - b.data);
+    eventos = eventos.filter(e => e.data >= new Date(new Date().setHours(0,0,0,0)));
+
+    if(!eventos.length) { container.innerHTML = '<p style="text-align:center; color:var(--text-secondary); margin-top:40px;">Sem eventos futuros.</p>'; return; }
+
+    container.innerHTML = eventos.map(ev => `
+        <div class="card">
+            <div class="event-date">${ev.data.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+            <div class="event-lote-name">Lote: ${ev.lote}</div>
+            <div><span class="event-tag ${ev.tag}">${ev.tipo}</span></div>
+        </div>
+    `).join('');
+}
+
+// === CONFIG & API KEY SEGURA ===
 const modalSettings = document.getElementById('modal-settings');
 const inputApiKey = document.getElementById('input-api-key');
-const apiKeyView = document.getElementById('api-key-view');
-const apiKeyActiveView = document.getElementById('api-key-active-view');
-const btnRemoveApi = document.getElementById('btn-remove-api');
 
-document.getElementById('btn-settings').addEventListener('click', () => {
-    toggleApiView();
-    modalSettings.classList.add('show');
-});
-document.getElementById('close-settings').addEventListener('click', () => {
-    modalSettings.classList.remove('show');
-});
+document.getElementById('btn-settings').addEventListener('click', () => { toggleApiView(); modalSettings.classList.add('show'); });
+document.getElementById('close-settings').addEventListener('click', () => modalSettings.classList.remove('show'));
 
 function toggleApiView() {
     if (state.apiKey) {
-        apiKeyView.style.display = 'none';
-        apiKeyActiveView.style.display = 'block';
-        btnRemoveApi.style.display = 'block';
+        document.getElementById('api-key-view').style.display = 'none';
+        document.getElementById('api-key-active-view').style.display = 'block';
+        document.getElementById('btn-remove-api').style.display = 'block';
         document.getElementById('btn-save-api').style.display = 'none';
     } else {
-        apiKeyView.style.display = 'block';
-        apiKeyActiveView.style.display = 'none';
-        btnRemoveApi.style.display = 'none';
+        document.getElementById('api-key-view').style.display = 'block';
+        document.getElementById('api-key-active-view').style.display = 'none';
+        document.getElementById('btn-remove-api').style.display = 'none';
         document.getElementById('btn-save-api').style.display = 'block';
         inputApiKey.value = '';
     }
@@ -343,25 +404,15 @@ function toggleApiView() {
 
 document.getElementById('btn-save-api').addEventListener('click', () => {
     const key = inputApiKey.value.trim();
-    if (!key.startsWith('gsk_')) {
-        alert("Por favor, insira uma chave válida do Groq (iniciando com gsk_)");
-        return;
-    }
-    state.apiKey = key;
-    saveState();
-    inputApiKey.value = ''; // Limpa da memória da DOM imediatamente
-    toggleApiView();
+    if (!key.startsWith('gsk_')) return alert("Chave inválida (precisa iniciar com gsk_)");
+    state.apiKey = key; saveState(); inputApiKey.value = ''; toggleApiView();
 });
 
-btnRemoveApi.addEventListener('click', () => {
-    if(confirm("Remover a chave de API salva?")) {
-        state.apiKey = "";
-        saveState();
-        toggleApiView();
-    }
+document.getElementById('btn-remove-api').addEventListener('click', () => {
+    if(confirm("Remover a chave?")) { state.apiKey = ""; saveState(); toggleApiView(); }
 });
 
-// === TELA: IA ASSISTENTE (GROQ API) ===
+// === IA GROQ ===
 const chatInput = document.getElementById('chat-input');
 const chatMessages = document.getElementById('chat-messages');
 
@@ -371,51 +422,29 @@ chatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChatMe
 async function sendChatMessage() {
     const msg = chatInput.value.trim();
     if (!msg) return;
+    if (!state.apiKey) return alert("Configure a chave da API nas Configurações.");
 
-    if (!state.apiKey) {
-        alert("Configure sua chave da API do Groq nas Configurações antes de usar a IA.");
-        return;
-    }
-
-    // Adiciona mensagem do usuário na tela
     appendMessage(msg, 'user');
     chatInput.value = '';
-
-    // Adiciona indicador de digitação
     const typingId = appendMessage("Analisando...", 'bot');
 
     try {
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
-            headers: {
-                "Authorization": `Bearer ${state.apiKey}`,
-                "Content-Type": "application/json"
-            },
+            headers: { "Authorization": `Bearer ${state.apiKey}`, "Content-Type": "application/json" },
             body: JSON.stringify({
                 model: "llama-3.3-70b-versatile",
                 messages: [
-                    {
-                        role: "system",
-                        content: "Você é um Veterinário e Especialista Sênior em Incubação Artificial de Ovos. Responda sempre com precisão técnica, mas de forma acessível. Dê dicas práticas sobre temperatura, umidade, ovoscopia, ovos, e espécies avícolas. Limite suas respostas ao tema de incubação e avicultura."
-                    },
+                    { role: "system", content: "Você é um Veterinário e Especialista Sênior em Incubação Artificial de Ovos. Responda com precisão técnica mas acessível." },
                     ...getChatHistory(),
                     { role: "user", content: msg }
                 ]
             })
         });
-
-        if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.error?.message || "Erro na API");
-        }
-
+        if (!response.ok) throw new Error((await response.json()).error?.message || "Erro na API");
         const data = await response.json();
-        const botReply = data.choices[0].message.content;
-        
-        // Remove indicador e adiciona resposta real
         document.getElementById(typingId).remove();
-        appendMessage(botReply, 'bot');
-
+        appendMessage(data.choices[0].message.content, 'bot');
     } catch (error) {
         document.getElementById(typingId).remove();
         appendMessage(`Erro: ${error.message}`, 'bot');
@@ -433,30 +462,23 @@ function appendMessage(text, sender) {
 }
 
 function getChatHistory() {
-    const msgs = chatMessages.querySelectorAll('.chat-msg');
-    const history = [];
-    msgs.forEach(m => {
-        const role = m.classList.contains('user') ? 'user' : 'assistant';
-        history.push({ role, content: m.innerText });
-    });
-    return history;
+    return Array.from(chatMessages.querySelectorAll('.chat-msg')).map(m => ({
+        role: m.classList.contains('user') ? 'user' : 'assistant',
+        content: m.innerText
+    }));
 }
 
-// === INICIALIZAÇÃO ===
+// === INIT ===
 function init() {
     loadState();
+    renderDashboard();
     renderTimeline();
     initLotesForm();
     renderEspecies();
 }
 
-// Registro do Service Worker
 if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('SW Registrado:', reg.scope))
-            .catch(err => console.error('Erro SW:', err));
-    });
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(e => console.error(e)));
 }
 
 init();
