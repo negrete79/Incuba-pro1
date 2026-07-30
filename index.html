@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#121212">
     <meta name="description" content="Controle profissional de incubação de ovos">
-    <link rel="icon" type="image/png" href="icon.png">
-    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <!-- Ícones SVG embutidos em Base64 para instalação imediata do PWA -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23121212'/%3E%3Ctext x='50' y='68' font-family='Arial,sans-serif' font-size='55' font-weight='bold' fill='%23d4af37' text-anchor='middle'%3EIP%3C/text%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23d4af37'/%3E%3Ctext x='50' y='68' font-family='Arial,sans-serif' font-size='55' font-weight='bold' fill='%23121212' text-anchor='middle'%3EIP%3C/text%3E%3C/svg%3E">
+    
     <link rel="manifest" href="manifest.json">
     <title>IncubaPro</title>
     <link rel="stylesheet" href="style.css">
@@ -36,17 +39,13 @@
                     <small>Concluído</small>
                 </div>
             </div>
-            <ul id="timeline-steps" class="timeline">
-                <!-- Passos injetados via JS -->
-            </ul>
+            <ul id="timeline-steps" class="timeline"></ul>
         </section>
 
         <!-- TELA: LOTES -->
         <section id="view-lotes" class="view">
             <button id="btn-add-lote" class="fab-button">+ Novo Lote</button>
-            <div id="lotes-list" class="card-list">
-                <!-- Lotes injetados via JS -->
-            </div>
+            <div id="lotes-list" class="card-list"></div>
         </section>
 
         <!-- TELA: IA ASSISTENTE -->
@@ -66,9 +65,7 @@
 
         <!-- TELA: CALENDÁRIO -->
         <section id="view-calendario" class="view">
-            <div id="calendar-events" class="card-list">
-                <!-- Eventos injetados via JS -->
-            </div>
+            <div id="calendar-events" class="card-list"></div>
         </section>
 
         <!-- TELA: ESPÉCIES -->
@@ -83,9 +80,7 @@
                             <th>Umid (%)</th>
                         </tr>
                     </thead>
-                    <tbody id="especies-tbody">
-                        <!-- Espécies injetadas via JS -->
-                    </tbody>
+                    <tbody id="especies-tbody"></tbody>
                 </table>
             </div>
         </section>
@@ -164,11 +159,9 @@
                     <label for="lote-especie">Espécie</label>
                     <select id="lote-especie">
                         <option value="">Selecione...</option>
-                        <!-- Opções injetadas via JS -->
                     </select>
                 </div>
                 
-                <!-- Campos Personalizados (Ocultos por padrão) -->
                 <div id="custom-species-fields" style="display: none;">
                     <div class="input-group">
                         <label for="custom-name">Nome da Ave</label>
@@ -206,4 +199,4 @@
 
     <script src="app.js"></script>
 </body>
-</html>
+                </html>
