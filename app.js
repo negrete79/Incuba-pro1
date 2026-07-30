@@ -19,18 +19,13 @@ const ETAPAS_INCUBACAO = [
     { titulo: "Eclosão e Nascimento", desc: "Preparação do pinteiro para os pintinhos" }
 ];
 
-let state = {
-    etapasConcluidas: [],
-    lotes: [],
-    customSpecies: [],
-    apiKey: ""
-};
-
+let state = { etapasConcluidas: [], lotes: [], customSpecies: [], apiKey: "" };
 let alarmInterval = null;
 let alarmAudioCtx = null;
 let alarmOscillator = null;
 let alarmGain = null;
 let isAlarmPlaying = false;
+let alarmSeconds = 7200; // 2 horas
 
 function loadState() {
     try {
@@ -41,19 +36,14 @@ function loadState() {
     } catch (e) { console.error(e); }
 }
 
-function saveState() {
-    localStorage.setItem('incubapro_state_v2', JSON.stringify(state));
-}
-
-function getAllSpecies() {
-    return [...ESPECIES_DEFAULT, ...state.customSpecies];
-}
+function saveState() { localStorage.setItem('incubapro_state_v2', JSON.stringify(state)); }
+function getAllSpecies() { return [...ESPECIES_DEFAULT, ...state.customSpecies]; }
 
 // === NAVEGAÇÃO ===
 const navButtons = document.querySelectorAll('.nav-btn');
 const views = document.querySelectorAll('.view');
 const headerTitle = document.getElementById('header-title');
-const viewTitles = { home: "IncubaPro", lotes: "Meus Lotes", ia: "IA Assistente", calendario: "Calendário", especies: "Espécies" };
+const viewTitles = { home: "IncubaPro", lotes: "Meus Lotes", ia: "IA Assistente", calendario: "Calendário", especies: "Tabela de Espécies" };
 
 navButtons.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -84,19 +74,15 @@ function renderDashboard() {
         statusBadge.textContent = 'INCUBADORA ATIVA';
         statusBadge.className = 'badge-status active';
         heroTitle.textContent = loteAtivo.nome;
-        
         document.getElementById('dash-species').textContent = loteAtivo.especieNome;
         document.getElementById('dash-temp').textContent = loteAtivo.temp.toFixed(1);
         document.getElementById('dash-humid').textContent = loteAtivo.umidade + '%';
-
         const inicio = new Date(loteAtivo.dataInicio + "T00:00:00");
         const hoje = new Date(); hoje.setHours(0,0,0,0);
         const diasPassados = Math.floor((hoje - inicio) / (1000 * 60 * 60 * 24));
         const diasRestantes = Math.max(0, loteAtivo.diasIncubacao - diasPassados);
-        
         document.getElementById('dash-days-left').textContent = diasRestantes + ' dias';
-        
-        const progresso = Math.min(100, Math.max(0, (diasPassados / loteAtivo.diasIncubacao) * 100));
+        const progresso = Math.min(100, Math.max(0, (diasPassados / loteAtivo.diasIncubacao) * 100);
         document.getElementById('dash-progress-bar').style.width = progresso + '%';
     } else {
         statusBadge.textContent = 'NENHUM LOTE ATIVO';
@@ -110,75 +96,132 @@ function renderDashboard() {
     }
 }
 
-// === ALARME SONORO ALTO ===
+// === ALARME SONORO ALTO (BOTÃO LIGAR/DESLIGAR) ===
 const btnAlarm = document.getElementById('btn-alarm');
 const alarmText = document.getElementById('alarm-timer-text');
-let alarmSeconds = 7200; // 2 horas
 
 btnAlarm.addEventListener('click', () => {
+    // 1. Se o som está tocando, ele silencia e reseta tudo
     if (isAlarmPlaying) {
-        stopAlarm();
-    } else if (alarmInterval) {
+        stopAlarmSound();
+        resetAlarmUI();
+        return;
+    }
+    
+    // 2. Se a contagem está rodando, ele cancela/desliga
+    if (alarmInterval) {
         clearInterval(alarmInterval);
         alarmInterval = null;
-        btnAlarm.textContent = 'INICIAR';
-        btnAlarm.classList.remove('active');
-        alarmText.textContent = 'Toque para iniciar (02:00h)';
-        alarmSeconds = 7200;
-    } else {
-        alarmInterval = setInterval(() => {
-            alarmSeconds--;
-            const h = Math.floor(alarmSeconds / 3600).toString().padStart(2,'0');
-            const m = Math.floor((alarmSeconds % 3600) / 60).toString().padStart(2,'0');
-            const s = (alarmSeconds % 60).toString().padStart(2,'0');
-            alarmText.textContent = `Alarme em ${h}:${m}:${s}`;
-            
-            if (alarmSeconds <= 0) {
-                clearInterval(alarmInterval);
-                alarmInterval = null;
-                triggerLoudAlarm();
-            }
-        }, 1000);
-        btnAlarm.textContent = 'CANCELAR';
-        btnAlarm.classList.add('active');
+        resetAlarmUI();
+        return;
     }
+
+    // 3. Se está parado, ele liga e começa a contar
+    btnAlarm.textContent = 'DESLIGAR';
+    btnAlarm.classList.add('active');
+    
+    alarmInterval = setInterval(() => {
+        alarmSeconds--;
+        const h = Math.floor(alarmSeconds / 3600).toString().padStart(2,'0');
+        const m = Math.floor((alarmSeconds % 3600) / 60).toString().padStart(2,'0');
+        const s = (alarmSeconds % 60).toString().padStart(2,'0');
+        alarmText.textContent = `Alarme em ${h}:${m}:${s}`;
+        
+        if (alarmSeconds <= 0) {
+            clearInterval(alarmInterval);
+            alarmInterval = null;
+            triggerLoudAlarm();
+        }
+    }, 1000);
 });
 
 function triggerLoudAlarm() {
     isAlarmPlaying = true;
     btnAlarm.textContent = 'SILENCIAR';
     btnAlarm.classList.add('active');
-    alarmText.textContent = 'VIRE OS OVOS AGORA! ALARME TOCANDO.';
+    alarmText.textContent = '⚠️ VIRE OS OVOS AGORA!';
 
     alarmAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
     alarmGain = alarmAudioCtx.createGain();
-    alarmGain.gain.value = 1; // Volume máximo
+    alarmGain.gain.value = 1; // Volume Máximo
     alarmGain.connect(alarmAudioCtx.destination);
 
     function playBeep() {
         if (!isAlarmPlaying) return;
         alarmOscillator = alarmAudioCtx.createOscillator();
-        alarmOscillator.type = 'square'; // Som mais agudo e irritante para acordar
-        alarmOscillator.frequency.setValueAtTime(1000, alarmAudioCtx.currentTime); // Frequência alta
+        alarmOscillator.type = 'square'; 
+        alarmOscillator.frequency.setValueAtTime(1000, alarmAudioCtx.currentTime);
         alarmOscillator.connect(alarmGain);
         alarmOscillator.start();
-        
         setTimeout(() => {
             alarmOscillator.stop();
-            if(isAlarmPlaying) setTimeout(playBeep, 500); // Pausa entre beeps
+            if(isAlarmPlaying) setTimeout(playBeep, 500);
         }, 500);
     }
     playBeep();
 }
 
-function stopAlarm() {
+function stopAlarmSound() {
     isAlarmPlaying = false;
     if (alarmOscillator) alarmOscillator.stop();
     if (alarmAudioCtx) alarmAudioCtx.close();
-    btnAlarm.textContent = 'INICIAR';
+}
+
+function resetAlarmUI() {
+    btnAlarm.textContent = 'LIGAR';
     btnAlarm.classList.remove('active');
     alarmText.textContent = 'Toque para iniciar (02:00h)';
     alarmSeconds = 7200;
+}
+
+// === MODAL DE PROTEÇÃO CONTRA EXCLUSÃO ===
+function showDeleteProtection(title, message, onConfirm) {
+    // Remove modal anterior se existir
+    const existingModal = document.getElementById('modal-delete-protection');
+    if(existingModal) existingModal.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modal-delete-protection';
+    modal.className = 'modal show';
+    modal.innerHTML = `
+        <div class="modal-content" style="text-align: center;">
+            <h2 style="color: var(--danger); margin-bottom: 10px; font-size: 1.3rem;">${title}</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.95rem; line-height: 1.5;">${message}</p>
+            <div class="input-group" style="text-align: left; margin-bottom: 25px;">
+                <label for="confirm-delete-input" style="color: var(--danger);">Digite <strong>SIM</strong> para confirmar</label>
+                <input type="text" id="confirm-delete-input" autocomplete="off" placeholder="SIM" style="text-align: center; font-size: 1.2rem; font-weight: bold; text-transform: uppercase;">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-cancel-del" style="flex:1; padding: 16px; background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text-primary); border-radius: 12px; font-weight: 700; cursor: pointer;">CANCELAR</button>
+                <button class="btn-confirm-del" style="flex:1; padding: 16px; background: var(--danger); border: none; color: #fff; border-radius: 12px; font-weight: 700; cursor: pointer; opacity: 0.5; pointer-events: none;">EXCLUIR</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    const input = document.getElementById('confirm-delete-input');
+    const btnConfirm = modal.querySelector('.btn-confirm-del');
+    const btnCancel = modal.querySelector('.btn-cancel-del');
+
+    // Libera o botão de excluir apenas se digitar SIM
+    input.addEventListener('input', () => {
+        if (input.value.trim().toUpperCase() === 'SIM') {
+            btnConfirm.style.opacity = '1';
+            btnConfirm.style.pointerEvents = 'auto';
+        } else {
+            btnConfirm.style.opacity = '0.5';
+            btnConfirm.style.pointerEvents = 'none';
+        }
+    });
+
+    btnCancel.addEventListener('click', () => modal.remove());
+    btnConfirm.addEventListener('click', () => {
+        modal.remove();
+        onConfirm(); // Executa a exclusão real
+    });
+    
+    // Foco automático no input
+    setTimeout(() => input.focus(), 100);
 }
 
 // === TIMELINE ===
@@ -239,13 +282,27 @@ function renderLotes() {
             <div class="card-info"><span>${lote.especieNome}</span><span>${lote.qtdOvos} Ovos</span></div>
             <div class="card-info"><span>Temp: ${lote.temp}°C</span><span>Umid: ${lote.umidade}%</span></div>
             <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${progresso}%"></div></div>
-            <button class="btn-delete" onclick="deleteLote(${index})">Excluir Lote</button>
+            <button class="btn-delete" data-index="${index}">Excluir Lote</button>
         </div>`;
     }).join('');
-}
 
-function deleteLote(index) {
-    if(confirm("Excluir este lote?")) { state.lotes.splice(index, 1); saveState(); renderLotes(); renderDashboard(); }
+    // Adiciona evento de proteção nos botões de excluir
+    container.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const index = e.target.dataset.index;
+            showDeleteProtection(
+                'Excluir Lote?',
+                'Esta ação não pode ser desfeita. Todos os dados deste lote serão perdidos permanentemente.',
+                () => {
+                    state.lotes.splice(index, 1);
+                    saveState(); 
+                    renderLotes(); 
+                    renderDashboard(); 
+                    renderCalendario();
+                }
+            );
+        });
+    });
 }
 
 document.getElementById('btn-add-lote').addEventListener('click', () => modalLote.classList.add('show'));
@@ -271,7 +328,7 @@ document.getElementById('btn-save-lote').addEventListener('click', () => {
     document.getElementById('lote-nome').value = ''; document.getElementById('lote-qtd').value = ''; selectEspecie.value = '';
 });
 
-// === ESPÉCIES (CRUD COMPLETO) ===
+// === ESPÉCIES (CRUD COM PROTEÇÃO) ===
 const modalSpecies = document.getElementById('modal-species');
 
 function renderEspecies() {
@@ -284,31 +341,43 @@ function renderEspecies() {
             <td>${e.temp}°C</td>
             <td>${e.umidade}%</td>
             <td>
-                ${!e.padrao ? `<button class="btn-icon" onclick="editSpecies('${e.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                <button class="btn-icon del" onclick="deleteSpecies('${e.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : '<span style="color:var(--text-secondary); font-size:0.75rem">PADRÃO</span>'}
+                ${!e.padrao ? `<button class="btn-icon edit-sp" data-id="${e.id}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                <button class="btn-icon del del-sp" data-id="${e.id}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : '<span style="color:var(--text-secondary); font-size:0.75rem">PADRÃO</span>'}
             </td>
         </tr>
     `).join('');
+
+    // Eventos: Editar Espécie
+    tbody.querySelectorAll('.edit-sp').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const sp = state.customSpecies.find(s => s.id === btn.dataset.id);
+            if(!sp) return;
+            document.getElementById('species-modal-title').textContent = 'Editar Espécie';
+            document.getElementById('edit-species-id').value = sp.id;
+            document.getElementById('sp-nome').value = sp.nome;
+            document.getElementById('sp-dias').value = sp.dias;
+            document.getElementById('sp-temp').value = sp.temp;
+            document.getElementById('sp-humid').value = sp.umidade;
+            modalSpecies.classList.add('show');
+        });
+    });
+
+    // Eventos: Excluir Espécie (Com Proteção)
+    tbody.querySelectorAll('.del-sp').forEach(btn => {
+        btn.addEventListener('click', () => {
+            showDeleteProtection(
+                'Excluir Espécie?',
+                'Esta espécie será removida da sua tabela. Lotes existentes que usam ela não serão afetados.',
+                () => {
+                    state.customSpecies = state.customSpecies.filter(s => s.id !== btn.dataset.id);
+                    saveState(); 
+                    renderEspecies(); 
+                    updateLotesSelect();
+                }
+            );
+        });
+    });
 }
-
-window.editSpecies = function(id) {
-    const sp = state.customSpecies.find(s => s.id === id);
-    if(!sp) return;
-    document.getElementById('species-modal-title').textContent = 'Editar Espécie';
-    document.getElementById('edit-species-id').value = id;
-    document.getElementById('sp-nome').value = sp.nome;
-    document.getElementById('sp-dias').value = sp.dias;
-    document.getElementById('sp-temp').value = sp.temp;
-    document.getElementById('sp-humid').value = sp.umidade;
-    modalSpecies.classList.add('show');
-};
-
-window.deleteSpecies = function(id) {
-    if(confirm('Excluir esta espécie personalizada?')) {
-        state.customSpecies = state.customSpecies.filter(s => s.id !== id);
-        saveState(); renderEspecies(); updateLotesSelect();
-    }
-};
 
 document.getElementById('btn-add-species').addEventListener('click', () => {
     document.getElementById('species-modal-title').textContent = 'Nova Espécie';
@@ -409,7 +478,15 @@ document.getElementById('btn-save-api').addEventListener('click', () => {
 });
 
 document.getElementById('btn-remove-api').addEventListener('click', () => {
-    if(confirm("Remover a chave?")) { state.apiKey = ""; saveState(); toggleApiView(); }
+    showDeleteProtection(
+        'Remover Chave da IA?',
+        'A inteligência artificial ficará inativa até que uma nova chave seja inserida.',
+        () => {
+            state.apiKey = ""; 
+            saveState(); 
+            toggleApiView(); 
+        }
+    );
 });
 
 // === IA GROQ ===
