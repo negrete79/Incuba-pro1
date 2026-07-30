@@ -5,13 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0a0a0a">
     <meta name="description" content="Controle profissional de incubação de ovos">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230a0a0a'/%3E%3Ctext x='50' y='68' font-family='Arial,sans-serif' font-size='55' font-weight='bold' fill='%23d4af37' text-anchor='middle'%3EIP%3C/text%3E%3C/svg%3E">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23d4af37'/%3E%3Ctext x='50' y='68' font-family='Arial,sans-serif' font-size='55' font-weight='bold' fill='%230a0a0a' text-anchor='middle'%3EIP%3C/text%3E%3C/svg%3E">
+    
+    <!-- Ícones Premium (Ovo Dourado) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%230a0a0a'/%3E%3Cpath d='M256 100c-70 0-130 60-130 140 0 100 60 180 110 220 10 8 30 8 40 0 50-40 110-120 110-220 0-80-60-140-130-140z' fill='%23d4af37'/%3E%3Cpath d='M256 140c-20 0-40 10-40 30 0 30 20 50 40 70 20-20 40-40 40-70 0-20-20-30-40-30z' fill='%230a0a0a' opacity='0.3'/%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%23d4af37'/%3E%3Cpath d='M256 100c-70 0-130 60-130 140 0 100 60 180 110 220 10 8 30 8 40 0 50-40 110-120 110-220 0-80-60-140-130-140z' fill='%230a0a0a'/%3E%3Cpath d='M256 140c-20 0-40 10-40 30 0 30 20 50 40 70 20-20 40-40 40-70 0-20-20-30-40-30z' fill='%23d4af37' opacity='0.3'/%3E%3C/svg%3E">
+    
     <link rel="manifest" href="manifest.json">
     <title>IncubaPro</title>
     <link rel="stylesheet" href="style.css">
     
-    <!-- CSS Exclusivo do Modal da API (Adicionado aqui para sua facilidade) -->
+    <!-- CSS Exclusivo do Modal da API -->
     <style>
         .api-help-box {
             display: flex; gap: 15px; background: rgba(212, 175, 55, 0.05);
@@ -39,7 +42,7 @@
 
     <main id="app-content">
         
-        <!-- TELA: INÍCIO (DASHBOARD PREMIUM) -->
+        <!-- TELA: INÍCIO -->
         <section id="view-home" class="view active">
             <div id="incubator-status" class="glass-card dashboard-hero">
                 <div class="hero-header">
@@ -80,7 +83,7 @@
                         <p id="alarm-timer-text">Toque para iniciar (02:00h)</p>
                     </div>
                 </div>
-                <button id="btn-alarm" class="btn-alarm">INICIAR</button>
+                <button id="btn-alarm" class="btn-alarm">LIGAR</button>
             </div>
 
             <h3 class="section-title">Checklist de Preparação</h3>
@@ -126,7 +129,7 @@
 
     </main>
 
-    <!-- Nav Inferior -->
+    <!-- MENU INFERIOR -->
     <nav id="bottom-nav">
         <button class="nav-btn active" data-view="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Início</span></button>
         <button class="nav-btn" data-view="lotes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span>Lotes</span></button>
@@ -135,7 +138,7 @@
         <button class="nav-btn" data-view="especies"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span>Tabela</span></button>
     </nav>
 
-    <!-- MODAL CONFIGURAÇÕES COM LINK GROQ -->
+    <!-- MODAL CONFIGURAÇÕES -->
     <div id="modal-settings" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -143,7 +146,7 @@
                 <button class="modal-close" id="close-settings">&times;</button>
             </div>
             <div class="modal-body">
-                <p class="settings-desc">Para ativar a IA Assistente especialista em incubação, você precisa de uma chave de acesso.</p>
+                <p class="settings-desc">Para ativar a IA Assistente, você precisa de uma chave de acesso.</p>
                 
                 <div id="api-help-box" class="api-help-box">
                     <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" width="22" height="22"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -179,7 +182,7 @@
         </div>
     </div>
 
-    <!-- Modal Lote -->
+    <!-- MODAL LOTES -->
     <div id="modal-lote" class="modal">
         <div class="modal-content">
             <div class="modal-header"><h2>Novo Lote</h2><button class="modal-close" id="close-lote">&times;</button></div>
@@ -201,7 +204,7 @@
         </div>
     </div>
 
-    <!-- Modal Espécie -->
+    <!-- MODAL ESPÉCIES -->
     <div id="modal-species" class="modal">
         <div class="modal-content">
             <div class="modal-header"><h2 id="species-modal-title">Nova Espécie</h2><button class="modal-close" id="close-species">&times;</button></div>
