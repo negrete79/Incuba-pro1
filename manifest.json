@@ -1,30 +1,38 @@
 {
-    "name": "IncubaPro - Controle de Incubação",
-    "short_name": "IncubaPro",
-    "description": "Aplicativo profissional para controle e acompanhamento de incubação artificial de ovos.",
-    "start_url": "./index.html",
-    "display": "standalone",
-    "orientation": "portrait",
-    "background_color": "#0a0a0a",
-    "theme_color": "#0a0a0a",
-    "icons": [
-        {
-            "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%230a0a0a'/%3E%3Cpath d='M256 100c-70 0-130 60-130 140 0 100 60 180 110 220 10 8 30 8 40 0 50-40 110-120 110-220 0-80-60-140-130-140z' fill='%23d4af37'/%3E%3Cpath d='M256 140c-20 0-40 10-40 30 0 30 20 50 40 70 20-20 40-40 40-70 0-20-20-30-40-30z' fill='%230a0a0a' opacity='0.3'/%3E%3C/svg%3E",
-            "sizes": "64x64",
-            "type": "image/svg+xml",
-            "purpose": "any"
-        },
-        {
-            "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx="100" fill='%230a0a0a'/%3E%3Cpath d='M256 100c-70 0-130 60-130 140 0 100 60 180 110 220 10 8 30 8 40 0 50-40 110-120 110-220 0-80-60-140-130-140z' fill='%23d4af37'/%3E%3Cpath d='M256 140c-20 0-40 10-40 30 0 30 20 50 40 70 20-20 40-40 40-70 0-20-20-30-40-30z' fill='%230a0a0a' opacity='0.3'/%3E%3C/svg%3E",
-            "sizes": "192x192",
-            "type": "image/svg+xml",
-            "purpose": "any maskable"
-        },
-        {
-            "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx="100" fill='%230a0a0a'/%3E%3Cpath d='M256 100c-70 0-130 60-130 140 0 100 60 180 110 220 10 8 30 8 40 0 50-40 110-120 110-220 0-80-60-140-130-140z' fill='%23d4af37'/%3E%3Cpath d='M256 140c-20 0-40 10-40 30 0 30 20 50 40 70 20-20 40-40 40-70 0-20-20-30-40-30z' fill='%230a0a0a' opacity='0.3'/%3E%3C/svg%3E",
-            "sizes": "512x512",
-            "type": "image/svg+xml",
-            "purpose": "any maskable"
-        }
-    ]
+  "name": "IncubaPro",
+  "short_name": "IncubaPro",
+  "description": "Controle profissional de incubação de ovos",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
 }
