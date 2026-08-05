@@ -1,561 +1,531 @@
-// === DADOS ===
-const ESPECIES_DEFAULT = [
-    { id: 'd1', nome: "Galinha", dias: 21, temp: 37.5, umidade: 60, padrao: true },
-    { id: 'd2', nome: "Codorna", dias: 17, temp: 37.8, umidade: 60, padrao: true },
-    { id: 'd3', nome: "Pato", dias: 28, temp: 37.5, umidade: 65, padrao: true },
-    { id: 'd4', nome: "Ganso", dias: 30, temp: 37.5, umidade: 70, padrao: true },
-    { id: 'd5', nome: "Marreco", dias: 35, temp: 37.2, umidade: 65, padrao: true },
-    { id: 'd6', nome: "Pavão", dias: 28, temp: 37.5, umidade: 60, padrao: true },
-    { id: 'd7', nome: "Peru", dias: 28, temp: 37.5, umidade: 60, padrao: true },
-    { id: 'd8', nome: "Calopsita", dias: 18, temp: 37.3, umidade: 55, padrao: true }
+// ==========================================
+// ARQUIVO: app.js
+// DESCRIÇÃO: Lógica completa do IncubaPro
+// ==========================================
+
+// --- DADOS INICIAIS (Espécies Padrão) ---
+const DEFAULT_SPECIES = [
+    { id: 1, name: 'Galinha', days: 21, temp: 37.5, humidity: 60 },
+    { id: 2, name: 'Pato', days: 28, temp: 37.5, humidity: 65 },
+    { id: 3, name: 'Codorna', days: 17, temp: 37.8, humidity: 55 },
+    { id: 4, name: 'Peru', days: 28, temp: 37.5, humidity: 60 },
+    { id: 5, name: 'Pavão', days: 28, temp: 37.2, humidity: 60 }
 ];
 
-const ETAPAS_INCUBACAO = [
-    { titulo: "Antes de Ligar a Chocadeira", desc: "Configuração inicial e limpeza" },
-    { titulo: "Preparando os Ovos", desc: "Seleção, ovoscopia prévia e armazenamento" },
-    { titulo: "Estabilização da Chocadeira", desc: "Ajuste fino de temperatura antes de colocar" },
-    { titulo: "Acompanhamento Diário", desc: "Viragem de ovos e controle de umidade" },
-    { titulo: "Ovoscopia Crítica", desc: "Exames nos dias 7 e 14" },
-    { titulo: "Eclosão e Nascimento", desc: "Preparação do pinteiro para os pintinhos" }
-];
+// --- ESTADO GLOBAL DO APP ---
+let state = {
+    species: [],
+    lotes: [],
+    activeLoteId: null,
+    apiKey: '',
+    alarmInterval: null,
+    alarmTimeLeft: 7200, // 2 horas em segundos
+    timeline: [
+        { title: 'Aquecer a incubadora', desc: 'Ligue 24h antes para estabilizar a temperatura.' },
+        { title: 'Colocar os ovos', desc: 'Posicione com a ponta mais fina para baixo.' },
+        { title: 'Iniciar viragens', desc: 'Vire os ovos no mínimo 3 vezes ao dia.' },
+        { title: 'Ovoscopia (Dia 7)', desc: 'Verifique se há embrião em desenvolvimento.' },
+        { title: 'Parar viragens (3 dias antes)', desc: 'Deixe os ovos em repouso para o nascimento.' },
+        { title: 'Eclosão', desc: 'Não abra a incubadora! Aguarde os pintinhos secarem.' }
+    ]
+};
 
-let state = { etapasConcluidas: [], lotes: [], customSpecies: [], apiKey: "" };
-let alarmInterval = null;
-let alarmAudioCtx = null;
-let alarmOscillator = null;
-let alarmGain = null;
-let isAlarmPlaying = false;
-let alarmSeconds = 7200; // 2 horas
+// --- INICIALIZAÇÃO ---
+document.addEventListener('DOMContentLoaded', () => {
+    loadState();
+    checkTimelineCompletion();
+    setupNavigation();
+    setupModals();
+    setupAlarm();
+    setupForms();
+    setupChat();
+    renderAll();
+});
+
+// --- PERSISTÊNCIA (LOCALSTORAGE) ---
+function saveState() {
+    localStorage.setItem('incubapro_state', JSON.stringify({
+        species: state.species,
+        lotes: state.lotes,
+        activeLoteId: state.activeLoteId,
+        apiKey: state.apiKey
+    }));
+}
 
 function loadState() {
-    try {
-        const saved = localStorage.getItem('incubapro_state_v2');
-        if (saved) state = JSON.parse(saved);
-        if(!Array.isArray(state.etapasConcluidas)) state.etapasConcluidas = [];
-        if(!Array.isArray(state.customSpecies)) state.customSpecies = [];
-    } catch (e) { console.error(e); }
-}
-
-function saveState() { localStorage.setItem('incubapro_state_v2', JSON.stringify(state)); }
-function getAllSpecies() { return [...ESPECIES_DEFAULT, ...state.customSpecies]; }
-
-// === NAVEGAÇÃO ===
-const navButtons = document.querySelectorAll('.nav-btn');
-const views = document.querySelectorAll('.view');
-const headerTitle = document.getElementById('header-title');
-const viewTitles = { home: "IncubaPro", lotes: "Meus Lotes", ia: "IA Assistente", calendario: "Calendário", especies: "Tabela de Espécies" };
-
-navButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-        const targetView = btn.dataset.view;
-        navButtons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        views.forEach(v => v.classList.remove('active'));
-        document.getElementById(`view-${targetView}`).classList.add('active');
-        headerTitle.textContent = viewTitles[targetView];
-        if(targetView === 'lotes') renderLotes();
-        if(targetView === 'calendario') renderCalendario();
-        if(targetView === 'especies') renderEspecies();
-    });
-});
-
-// === DASHBOARD (INÍCIO) ===
-function renderDashboard() {
-    const loteAtivo = state.lotes.find(l => {
-        const inicio = new Date(l.dataInicio + "T00:00:00");
-        const fim = new Date(inicio.getTime() + (l.diasIncubacao * 24 * 60 * 60 * 1000));
-        return new Date() <= fim;
-    });
-
-    const statusBadge = document.querySelector('.badge-status');
-    const heroTitle = document.getElementById('dash-lote-name');
-    
-    if (loteAtivo) {
-        statusBadge.textContent = 'INCUBADORA ATIVA';
-        statusBadge.className = 'badge-status active';
-        heroTitle.textContent = loteAtivo.nome;
-        document.getElementById('dash-species').textContent = loteAtivo.especieNome;
-        document.getElementById('dash-temp').textContent = loteAtivo.temp.toFixed(1);
-        document.getElementById('dash-humid').textContent = loteAtivo.umidade + '%';
-        const inicio = new Date(loteAtivo.dataInicio + "T00:00:00");
-        const hoje = new Date(); hoje.setHours(0,0,0,0);
-        const diasPassados = Math.floor((hoje - inicio) / (1000 * 60 * 60 * 24));
-        const diasRestantes = Math.max(0, loteAtivo.diasIncubacao - diasPassados);
-        document.getElementById('dash-days-left').textContent = diasRestantes + ' dias';
-        const progresso = Math.min(100, Math.max(0, (diasPassados / loteAtivo.diasIncubacao) * 100);
-        document.getElementById('dash-progress-bar').style.width = progresso + '%';
+    const saved = localStorage.getItem('incubapro_state');
+    if (saved) {
+        const parsed = JSON.parse(saved);
+        state.species = parsed.species || DEFAULT_SPECIES;
+        state.lotes = parsed.lotes || [];
+        state.activeLoteId = parsed.activeLoteId || null;
+        state.apiKey = parsed.apiKey || '';
     } else {
-        statusBadge.textContent = 'NENHUM LOTE ATIVO';
-        statusBadge.className = 'badge-status inactive';
-        heroTitle.textContent = 'Cadastre um lote';
-        document.getElementById('dash-species').textContent = '---';
-        document.getElementById('dash-temp').textContent = '--';
-        document.getElementById('dash-humid').textContent = '--%';
-        document.getElementById('dash-days-left').textContent = '-- dias';
-        document.getElementById('dash-progress-bar').style.width = '0%';
+        state.species = [...DEFAULT_SPECIES];
     }
+    updateApiKeyUI();
 }
 
-// === ALARME SONORO ALTO (BOTÃO LIGAR/DESLIGAR) ===
-const btnAlarm = document.getElementById('btn-alarm');
-const alarmText = document.getElementById('alarm-timer-text');
-
-btnAlarm.addEventListener('click', () => {
-    // 1. Se o som está tocando, ele silencia e reseta tudo
-    if (isAlarmPlaying) {
-        stopAlarmSound();
-        resetAlarmUI();
-        return;
-    }
-    
-    // 2. Se a contagem está rodando, ele cancela/desliga
-    if (alarmInterval) {
-        clearInterval(alarmInterval);
-        alarmInterval = null;
-        resetAlarmUI();
-        return;
-    }
-
-    // 3. Se está parado, ele liga e começa a contar
-    btnAlarm.textContent = 'DESLIGAR';
-    btnAlarm.classList.add('active');
-    
-    alarmInterval = setInterval(() => {
-        alarmSeconds--;
-        const h = Math.floor(alarmSeconds / 3600).toString().padStart(2,'0');
-        const m = Math.floor((alarmSeconds % 3600) / 60).toString().padStart(2,'0');
-        const s = (alarmSeconds % 60).toString().padStart(2,'0');
-        alarmText.textContent = `Alarme em ${h}:${m}:${s}`;
-        
-        if (alarmSeconds <= 0) {
-            clearInterval(alarmInterval);
-            alarmInterval = null;
-            triggerLoudAlarm();
-        }
-    }, 1000);
-});
-
-function triggerLoudAlarm() {
-    isAlarmPlaying = true;
-    btnAlarm.textContent = 'SILENCIAR';
-    btnAlarm.classList.add('active');
-    alarmText.textContent = '⚠️ VIRE OS OVOS AGORA!';
-
-    alarmAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    alarmGain = alarmAudioCtx.createGain();
-    alarmGain.gain.value = 1; // Volume Máximo
-    alarmGain.connect(alarmAudioCtx.destination);
-
-    function playBeep() {
-        if (!isAlarmPlaying) return;
-        alarmOscillator = alarmAudioCtx.createOscillator();
-        alarmOscillator.type = 'square'; 
-        alarmOscillator.frequency.setValueAtTime(1000, alarmAudioCtx.currentTime);
-        alarmOscillator.connect(alarmGain);
-        alarmOscillator.start();
-        setTimeout(() => {
-            alarmOscillator.stop();
-            if(isAlarmPlaying) setTimeout(playBeep, 500);
-        }, 500);
-    }
-    playBeep();
-}
-
-function stopAlarmSound() {
-    isAlarmPlaying = false;
-    if (alarmOscillator) alarmOscillator.stop();
-    if (alarmAudioCtx) alarmAudioCtx.close();
-}
-
-function resetAlarmUI() {
-    btnAlarm.textContent = 'LIGAR';
-    btnAlarm.classList.remove('active');
-    alarmText.textContent = 'Toque para iniciar (02:00h)';
-    alarmSeconds = 7200;
-}
-
-// === MODAL DE PROTEÇÃO CONTRA EXCLUSÃO ===
-function showDeleteProtection(title, message, onConfirm) {
-    // Remove modal anterior se existir
-    const existingModal = document.getElementById('modal-delete-protection');
-    if(existingModal) existingModal.remove();
-
-    const modal = document.createElement('div');
-    modal.id = 'modal-delete-protection';
-    modal.className = 'modal show';
-    modal.innerHTML = `
-        <div class="modal-content" style="text-align: center;">
-            <h2 style="color: var(--danger); margin-bottom: 10px; font-size: 1.3rem;">${title}</h2>
-            <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.95rem; line-height: 1.5;">${message}</p>
-            <div class="input-group" style="text-align: left; margin-bottom: 25px;">
-                <label for="confirm-delete-input" style="color: var(--danger);">Digite <strong>SIM</strong> para confirmar</label>
-                <input type="text" id="confirm-delete-input" autocomplete="off" placeholder="SIM" style="text-align: center; font-size: 1.2rem; font-weight: bold; text-transform: uppercase;">
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <button class="btn-cancel-del" style="flex:1; padding: 16px; background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text-primary); border-radius: 12px; font-weight: 700; cursor: pointer;">CANCELAR</button>
-                <button class="btn-confirm-del" style="flex:1; padding: 16px; background: var(--danger); border: none; color: #fff; border-radius: 12px; font-weight: 700; cursor: pointer; opacity: 0.5; pointer-events: none;">EXCLUIR</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-
-    const input = document.getElementById('confirm-delete-input');
-    const btnConfirm = modal.querySelector('.btn-confirm-del');
-    const btnCancel = modal.querySelector('.btn-cancel-del');
-
-    // Libera o botão de excluir apenas se digitar SIM
-    input.addEventListener('input', () => {
-        if (input.value.trim().toUpperCase() === 'SIM') {
-            btnConfirm.style.opacity = '1';
-            btnConfirm.style.pointerEvents = 'auto';
-        } else {
-            btnConfirm.style.opacity = '0.5';
-            btnConfirm.style.pointerEvents = 'none';
-        }
-    });
-
-    btnCancel.addEventListener('click', () => modal.remove());
-    btnConfirm.addEventListener('click', () => {
-        modal.remove();
-        onConfirm(); // Executa a exclusão real
-    });
-    
-    // Foco automático no input
-    setTimeout(() => input.focus(), 100);
-}
-
-// === TIMELINE ===
-function renderTimeline() {
-    const list = document.getElementById('timeline-steps');
-    list.innerHTML = ETAPAS_INCUBACAO.map((etapa, i) => {
-        const isCompleted = state.etapasConcluidas.includes(i);
-        return `<li class="${isCompleted ? 'completed' : ''}" data-index="${i}"><h3>${etapa.titulo}</h3><p>${etapa.desc}</p></li>`;
-    }).join('');
-
-    list.querySelectorAll('li').forEach(li => {
-        li.addEventListener('click', () => {
-            const i = parseInt(li.dataset.index);
-            if (state.etapasConcluidas.includes(i)) state.etapasConcluidas = state.etapasConcluidas.filter(x => x !== i);
-            else state.etapasConcluidas.push(i);
-            saveState();
-            renderTimeline();
+// --- NAVEGAÇÃO ---
+function setupNavigation() {
+    const navBtns = document.querySelectorAll('.nav-btn');
+    navBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const viewId = btn.getAttribute('data-view');
+            switchView(viewId);
         });
     });
 }
 
-// === LOTES ===
-const modalLote = document.getElementById('modal-lote');
-const selectEspecie = document.getElementById('lote-especie');
+function switchView(viewId) {
+    // Atualiza botões
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.nav-btn[data-view="${viewId}"]`).classList.add('active');
+    
+    // Atualiza views
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(`view-${viewId}`).classList.add('active');
 
-function initLotesForm() {
-    getAllSpecies().forEach(e => {
-        const opt = document.createElement('option');
-        opt.value = e.id;
-        opt.textContent = `${e.nome} (${e.dias} dias)`;
-        selectEspecie.appendChild(opt);
-    });
-    const optCustom = document.createElement('option');
-    optCustom.value = "custom"; optCustom.textContent = "Outra (Personalizada)";
-    selectEspecie.appendChild(optCustom);
+    // Atualiza título
+    const titles = { home: 'IncubaPro', lotes: 'Meus Lotes', ia: 'Assistente IA', calendario: 'Agenda', especies: 'Espécies' };
+    document.getElementById('header-title').innerText = titles[viewId] || 'IncubaPro';
 
-    selectEspecie.addEventListener('change', () => {
-        document.getElementById('custom-species-fields').style.display = selectEspecie.value === 'custom' ? 'block' : 'none';
+    // Renderiza conteúdo específico da view
+    if (viewId === 'lotes') renderLotes();
+    if (viewId === 'especies') renderSpeciesTable();
+    if (viewId === 'calendario') renderCalendar();
+}
+
+// --- MODAIS ---
+function setupModals() {
+    // Configurações
+    document.getElementById('btn-settings').addEventListener('click', () => openModal('modal-settings'));
+    document.getElementById('close-settings').addEventListener('click', () => closeModal('modal-settings'));
+    
+    // Lotes
+    document.getElementById('btn-add-lote').addEventListener('click', () => {
+        resetLoteForm();
+        populateSpeciesSelect();
+        openModal('modal-lote');
     });
+    document.getElementById('close-lote').addEventListener('click', () => closeModal('modal-lote'));
+    
+    // Espécies
+    document.getElementById('btn-add-species').addEventListener('click', () => {
+        resetSpeciesForm();
+        document.getElementById('species-modal-title').innerText = 'Nova Espécie';
+        openModal('modal-species');
+    });
+    document.getElementById('close-species').addEventListener('click', () => closeModal('modal-species'));
+
+    // Fechar modal ao clicar no fundo escuro
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal(modal.id);
+        });
+    });
+}
+
+function openModal(id) {
+    document.getElementById(id).classList.add('show');
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove('show');
+}
+
+// --- LÓGICA DA API KEY ---
+function updateApiKeyUI() {
+    const hasKey = state.apiKey.length > 10;
+    document.getElementById('api-key-view').style.display = hasKey ? 'none' : 'block';
+    document.getElementById('api-key-active-view').style.display = hasKey ? 'block' : 'none';
+    document.getElementById('btn-remove-api').style.display = hasKey ? 'block' : 'none';
+    document.getElementById('input-api-key').value = hasKey ? '••••••••••••••••' : '';
+}
+
+document.getElementById('btn-save-api').addEventListener('click', () => {
+    const input = document.getElementById('input-api-key').value;
+    // Se já tem chave e o usuário digitou as bolinhas, não salva por cima
+    if (input.startsWith('••')) {
+        alert('A chave atual já está salva. Clique em "Remover Chave" se quiser trocar.');
+        return;
+    }
+    if (input.startsWith('gsk_')) {
+        state.apiKey = input;
+        saveState();
+        updateApiKeyUI();
+        alert('Chave ativada com sucesso! A IA já pode ser usada.');
+    } else {
+        alert('Chave inválida. A chave do Groq deve começar com "gsk_".');
+    }
+});
+
+document.getElementById('btn-remove-api').addEventListener('click', () => {
+    state.apiKey = '';
+    saveState();
+    updateApiKeyUI();
+});
+
+// --- RENDERIZAÇÃO: DASHBOARD (HOME) ---
+function renderDashboard() {
+    const lote = state.lotes.find(l => l.id === state.activeLoteId);
+    const statusBadge = document.querySelector('#incubator-status .badge-status');
+    const dashName = document.getElementById('dash-lote-name');
+
+    if (!lote) {
+        statusBadge.className = 'badge-status inactive';
+        statusBadge.innerText = 'Inativa';
+        dashName.innerText = 'Nenhum lote ativo';
+        document.getElementById('dash-species').innerText = '---';
+        document.getElementById('dash-temp').innerText = '--';
+        document.getElementById('dash-humid').innerText = '--%';
+        document.getElementById('dash-days-left').innerText = '-- dias';
+        document.getElementById('dash-progress-bar').style.width = '0%';
+        return;
+    }
+
+    statusBadge.className = 'badge-status active';
+    statusBadge.innerText = 'Incubadora Ativa';
+    dashName.innerText = lote.name;
+
+    const species = state.species.find(s => s.name === lote.speciesName) || { days: 21, temp: 37.5, humidity: 60 };
+    
+    document.getElementById('dash-species').innerText = lote.speciesName;
+    document.getElementById('dash-temp').innerText = species.temp.toFixed(1);
+    document.getElementById('dash-humid').innerText = species.humidity + '%';
+
+    // Cálculo de dias
+    const startDate = new Date(lote.startDate + 'T00:00:00');
+    const today = new Date(); today.setHours(0,0,0,0);
+    const diffDays = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+    const daysLeft = Math.max(0, species.days - diffDays);
+    
+    document.getElementById('dash-days-left').innerText = daysLeft + ' dias';
+    
+    const progress = Math.min(100, (diffDays / species.days) * 100);
+    document.getElementById('dash-progress-bar').style.width = progress + '%';
+}
+
+// --- RENDERIZAÇÃO: TIMELINE ---
+function renderTimeline() {
+    const ul = document.getElementById('timeline-steps');
+    ul.innerHTML = '';
+    state.timeline.forEach((step, index) => {
+        const li = document.createElement('li');
+        if (step.done) li.classList.add('completed');
+        li.innerHTML = `<h3>${step.title}</h3><p>${step.desc}</p>`;
+        li.addEventListener('click', () => {
+            step.done = !step.done;
+            renderTimeline();
+        });
+        ul.appendChild(li);
+    });
+}
+
+function checkTimelineCompletion() {
+    const lote = state.lotes.find(l => l.id === state.activeLoteId);
+    if (!lote) {
+        state.timeline.forEach(s => s.done = false);
+    }
+}
+
+// --- LÓGICA DO ALARME ---
+function setupAlarm() {
+    const btnAlarm = document.getElementById('btn-alarm');
+    btnAlarm.addEventListener('click', () => {
+        if (state.alarmInterval) {
+            stopAlarm();
+        } else {
+            startAlarm();
+        }
+    });
+}
+
+function startAlarm() {
+    const btnAlarm = document.getElementById('btn-alarm');
+    btnAlarm.innerText = 'DESLIGAR';
+    btnAlarm.classList.add('active');
+    state.alarmTimeLeft = 7200; // 2h
+
+    state.alarmInterval = setInterval(() => {
+        state.alarmTimeLeft--;
+        updateAlarmDisplay();
+        
+        if (state.alarmTimeLeft <= 0) {
+            triggerAlarmAlert();
+            stopAlarm();
+        }
+    }, 1000);
+}
+
+function stopAlarm() {
+    clearInterval(state.alarmInterval);
+    state.alarmInterval = null;
+    const btnAlarm = document.getElementById('btn-alarm');
+    btnAlarm.innerText = 'LIGAR';
+    btnAlarm.classList.remove('active');
+    state.alarmTimeLeft = 7200;
+    updateAlarmDisplay();
+}
+
+function updateAlarmDisplay() {
+    const h = Math.floor(state.alarmTimeLeft / 3600).toString().padStart(2, '0');
+    const m = Math.floor((state.alarmTimeLeft % 3600) / 60).toString().padStart(2, '0');
+    const s = (state.alarmTimeLeft % 60).toString().padStart(2, '0');
+    document.getElementById('alarm-timer-text').innerText = `Próxima viragem em ${h}:${m}:${s}`;
+}
+
+function triggerAlarmAlert() {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('IncubaPro', { body: 'Hora de virar os ovos!', icon: 'data:image/svg+xml,...' });
+    }
+    alert('⏰ Hora de virar os ovos!');
+}
+
+// --- RENDERIZAÇÃO: LOTES ---
+function renderLotes() {
+    const container = document.getElementById('lotes-list');
+    container.innerHTML = '';
+    
+    if (state.lotes.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:var(--text-secondary); margin-top:40px;">Nenhum lote cadastrado.</p>';
+        return;
+    }
+
+    state.lotes.forEach(lote => {
+        const species = state.species.find(s => s.name === lote.speciesName) || { days: 21 };
+        const startDate = new Date(lote.startDate + 'T00:00:00');
+        const today = new Date(); today.setHours(0,0,0,0);
+        const diffDays = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+        const isActive = lote.id === state.activeLoteId;
+        const isFinished = diffDays >= species.days;
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.cursor = 'pointer';
+        card.innerHTML = `
+            <div class="card-header">
+                <span class="card-title">${lote.name}</span>
+                <span class="card-badge">${isFinished ? 'Finalizado' : (isActive ? 'Ativo' : 'Pausado')}</span>
+            </div>
+            <div class="card-info"><span>Espécie:</span><span>${lote.speciesName}</span></div>
+            <div class="card-info"><span>Ovos:</span><span>${lote.qtd} unidades</span></div>
+            <div class="card-info"><span>Início:</span><span>${formatDate(lote.startDate)}</span></div>
+            <button class="btn-delete" data-id="${lote.id}">Excluir Lote</button>
+        `;
+
+        if (!isFinished) {
+            card.addEventListener('click', (e) => {
+                if (!e.target.classList.contains('btn-delete')) {
+                    state.activeLoteId = lote.id;
+                    saveState();
+                    checkTimelineCompletion();
+                    renderDashboard();
+                    renderTimeline();
+                    switchView('home');
+                }
+            });
+        }
+
+        card.querySelector('.btn-delete').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm(`Excluir o lote "${lote.name}"?`)) {
+                state.lotes = state.lotes.filter(l => l.id !== lote.id);
+                if (state.activeLoteId === lote.id) state.activeLoteId = null;
+                saveState();
+                renderLotes();
+                renderDashboard();
+            }
+        });
+
+        container.appendChild(card);
+    });
+}
+
+// --- FORMULÁRIOS ---
+function setupForms() {
+    // Mostrar/esconder campos customizados de espécie no formulário de lote
+    document.getElementById('lote-especie').addEventListener('change', (e) => {
+        document.getElementById('custom-species-fields').style.display = e.target.value === '__custom__' ? 'block' : 'none';
+    });
+
+    // Setar data de hoje como padrão
+    document.getElementById('lote-data').valueAsDate = new Date();
+
+    // Salvar Lote
+    document.getElementById('btn-save-lote').addEventListener('click', saveLote);
+    
+    // Salvar Espécie
+    document.getElementById('btn-save-species').addEventListener('click', saveSpecies);
+}
+
+function resetLoteForm() {
+    document.getElementById('lote-nome').value = '';
+    document.getElementById('lote-qtd').value = '';
+    document.getElementById('custom-species-fields').style.display = 'none';
+    document.getElementById('custom-name').value = '';
+    document.getElementById('custom-days').value = '';
+    document.getElementById('custom-temp').value = '';
+    document.getElementById('custom-humid').value = '';
     document.getElementById('lote-data').valueAsDate = new Date();
 }
 
-function renderLotes() {
-    const container = document.getElementById('lotes-list');
-    if (state.lotes.length === 0) { container.innerHTML = '<p style="text-align:center; color:var(--text-secondary); margin-top:40px;">Nenhum lote cadastrado.</p>'; return; }
-
-    container.innerHTML = state.lotes.map((lote, index) => {
-        const inicio = new Date(lote.dataInicio + "T00:00:00");
-        const diaAtual = Math.floor((new Date() - inicio) / (1000 * 60 * 60 * 24));
-        const diasRestantes = Math.max(0, lote.diasIncubacao - diaAtual);
-        const progresso = Math.min(100, Math.max(0, (diaAtual / lote.diasIncubacao) * 100));
-        return `
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title">${lote.nome}</span>
-                <span class="card-badge">${diasRestantes > 0 ? diasRestantes + ' dias' : 'Pronto'}</span>
-            </div>
-            <div class="card-info"><span>${lote.especieNome}</span><span>${lote.qtdOvos} Ovos</span></div>
-            <div class="card-info"><span>Temp: ${lote.temp}°C</span><span>Umid: ${lote.umidade}%</span></div>
-            <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${progresso}%"></div></div>
-            <button class="btn-delete" data-index="${index}">Excluir Lote</button>
-        </div>`;
-    }).join('');
-
-    // Adiciona evento de proteção nos botões de excluir
-    container.querySelectorAll('.btn-delete').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const index = e.target.dataset.index;
-            showDeleteProtection(
-                'Excluir Lote?',
-                'Esta ação não pode ser desfeita. Todos os dados deste lote serão perdidos permanentemente.',
-                () => {
-                    state.lotes.splice(index, 1);
-                    saveState(); 
-                    renderLotes(); 
-                    renderDashboard(); 
-                    renderCalendario();
-                }
-            );
-        });
+function populateSpeciesSelect() {
+    const select = document.getElementById('lote-especie');
+    select.innerHTML = '<option value="">Selecione...</option>';
+    state.species.forEach(s => {
+        select.innerHTML += `<option value="${s.name}">${s.name} (${s.days}d)</option>`;
     });
+    select.innerHTML += '<option value="__custom__">+ Outra Espécie</option>';
 }
 
-document.getElementById('btn-add-lote').addEventListener('click', () => modalLote.classList.add('show'));
-document.getElementById('close-lote').addEventListener('click', () => modalLote.classList.remove('show'));
+function saveLote() {
+    const name = document.getElementById('lote-nome').value.trim();
+    const speciesVal = document.getElementById('lote-especie').value;
+    const qtd = parseInt(document.getElementById('lote-qtd').value);
+    const startDate = document.getElementById('lote-data').value;
 
-document.getElementById('btn-save-lote').addEventListener('click', () => {
-    const nome = document.getElementById('lote-nome').value.trim();
-    const especieVal = selectEspecie.value;
-    const qtd = document.getElementById('lote-qtd').value;
-    const data = document.getElementById('lote-data').value;
-    if (!nome || !especieVal || !qtd || !data) return alert("Preencha todos os campos.");
-
-    let dadosEspecie;
-    if (especieVal === 'custom') {
-        dadosEspecie = { nome: document.getElementById('custom-name').value, dias: parseInt(document.getElementById('custom-days').value), temp: parseFloat(document.getElementById('custom-temp').value), umidade: parseInt(document.getElementById('custom-humid').value) };
-        if(!dadosEspecie.nome || !dadosEspecie.dias) return alert("Preencha os dados da espécie.");
-    } else {
-        dadosEspecie = getAllSpecies().find(e => e.id === especieVal);
+    if (!name || !speciesVal || !qtd || !startDate) {
+        alert('Preencha todos os campos.');
+        return;
     }
 
-    state.lotes.push({ id: Date.now(), nome, especieNome: dadosEspecie.nome, diasIncubacao: dadosEspecie.dias, temp: dadosEspecie.temp, umidade: dadosEspecie.umidade, qtdOvos: parseInt(qtd), dataInicio: data });
-    saveState(); modalLote.classList.remove('show'); renderLotes(); renderDashboard(); renderCalendario();
-    document.getElementById('lote-nome').value = ''; document.getElementById('lote-qtd').value = ''; selectEspecie.value = '';
-});
+    let speciesName = speciesVal;
 
-// === ESPÉCIES (CRUD COM PROTEÇÃO) ===
-const modalSpecies = document.getElementById('modal-species');
+    // Se for customizado, salva a espécie nova primeiro
+    if (speciesVal === '__custom__') {
+        const cName = document.getElementById('custom-name').value.trim();
+        const cDays = parseInt(document.getElementById('custom-days').value);
+        const cTemp = parseFloat(document.getElementById('custom-temp').value);
+        const cHumid = parseInt(document.getElementById('custom-humid').value);
+        
+        if (!cName || !cDays || !cTemp || !cHumid) {
+            alert('Preencha os dados da espécie customizada.');
+            return;
+        }
+        
+        state.species.push({ id: Date.now(), name: cName, days: cDays, temp: cTemp, humidity: cHumid });
+        speciesName = cName;
+    }
 
-function renderEspecies() {
-    const tbody = document.getElementById('especies-tbody');
-    const all = getAllSpecies();
-    tbody.innerHTML = all.map(e => `
-        <tr>
-            <td>${e.nome}</td>
-            <td>${e.dias}</td>
-            <td>${e.temp}°C</td>
-            <td>${e.umidade}%</td>
-            <td>
-                ${!e.padrao ? `<button class="btn-icon edit-sp" data-id="${e.id}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                <button class="btn-icon del del-sp" data-id="${e.id}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : '<span style="color:var(--text-secondary); font-size:0.75rem">PADRÃO</span>'}
-            </td>
-        </tr>
-    `).join('');
+    const newLote = {
+        id: Date.now(),
+        name,
+        speciesName,
+        qtd,
+        startDate,
+        active: true
+    };
 
-    // Eventos: Editar Espécie
-    tbody.querySelectorAll('.edit-sp').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const sp = state.customSpecies.find(s => s.id === btn.dataset.id);
-            if(!sp) return;
-            document.getElementById('species-modal-title').textContent = 'Editar Espécie';
-            document.getElementById('edit-species-id').value = sp.id;
-            document.getElementById('sp-nome').value = sp.nome;
-            document.getElementById('sp-dias').value = sp.dias;
-            document.getElementById('sp-temp').value = sp.temp;
-            document.getElementById('sp-humid').value = sp.umidade;
-            modalSpecies.classList.add('show');
-        });
-    });
-
-    // Eventos: Excluir Espécie (Com Proteção)
-    tbody.querySelectorAll('.del-sp').forEach(btn => {
-        btn.addEventListener('click', () => {
-            showDeleteProtection(
-                'Excluir Espécie?',
-                'Esta espécie será removida da sua tabela. Lotes existentes que usam ela não serão afetados.',
-                () => {
-                    state.customSpecies = state.customSpecies.filter(s => s.id !== btn.dataset.id);
-                    saveState(); 
-                    renderEspecies(); 
-                    updateLotesSelect();
-                }
-            );
-        });
-    });
+    state.lotes.push(newLote);
+    state.activeLoteId = newLote.id;
+    
+    saveState();
+    closeModal('modal-lote');
+    checkTimelineCompletion();
+    renderAll();
+    switchView('home');
 }
 
-document.getElementById('btn-add-species').addEventListener('click', () => {
-    document.getElementById('species-modal-title').textContent = 'Nova Espécie';
+function resetSpeciesForm() {
     document.getElementById('edit-species-id').value = '';
     document.getElementById('sp-nome').value = '';
     document.getElementById('sp-dias').value = '';
     document.getElementById('sp-temp').value = '';
     document.getElementById('sp-humid').value = '';
-    modalSpecies.classList.add('show');
-});
+}
 
-document.getElementById('close-species').addEventListener('click', () => modalSpecies.classList.remove('show'));
+function saveSpecies() {
+    const editId = document.getElementById('edit-species-id').value;
+    const name = document.getElementById('sp-nome').value.trim();
+    const days = parseInt(document.getElementById('sp-dias').value);
+    const temp = parseFloat(document.getElementById('sp-temp').value);
+    const humidity = parseInt(document.getElementById('sp-humid').value);
 
-document.getElementById('btn-save-species').addEventListener('click', () => {
-    const id = document.getElementById('edit-species-id').value;
-    const data = {
-        id: id || 'c' + Date.now(),
-        nome: document.getElementById('sp-nome').value.trim(),
-        dias: parseInt(document.getElementById('sp-dias').value),
-        temp: parseFloat(document.getElementById('sp-temp').value),
-        umidade: parseInt(document.getElementById('sp-humid').value),
-        padrao: false
-    };
-    if(!data.nome || !data.dias || !data.temp) return alert('Preencha os campos corretamente.');
-
-    if(id) {
-        const index = state.customSpecies.findIndex(s => s.id === id);
-        if(index !== -1) state.customSpecies[index] = data;
-    } else {
-        state.customSpecies.push(data);
+    if (!name || !days || !temp || !humidity) {
+        alert('Preencha todos os campos.');
+        return;
     }
-    
-    saveState(); modalSpecies.classList.remove('show'); renderEspecies(); updateLotesSelect();
-});
 
-function updateLotesSelect() {
-    const val = selectEspecie.value;
-    selectEspecie.innerHTML = '<option value="">Selecione...</option>';
-    initLotesForm();
-    selectEspecie.value = val;
-}
-
-// === CALENDÁRIO ===
-function renderCalendario() {
-    const container = document.getElementById('calendar-events');
-    if (state.lotes.length === 0) { container.innerHTML = '<p style="text-align:center; color:var(--text-secondary); margin-top:40px;">Nenhum lote ativo.</p>'; return; }
-
-    let eventos = [];
-    state.lotes.forEach(lote => {
-        const inicio = new Date(lote.dataInicio + "T00:00:00");
-        const addEv = (dias, tipo, tag) => { let d = new Date(inicio); d.setDate(d.getDate() + dias); eventos.push({ data: d, lote: lote.nome, tipo, tag }); };
-        addEv(7, 'Ovoscopia (Dia 7)', 'tag-ovoscopia');
-        addEv(14, 'Ovoscopia (Dia 14)', 'tag-ovoscopia');
-        addEv(lote.diasIncubacao - 3, 'Parada de Rolagem', 'tag-parada');
-        addEv(lote.diasIncubacao, 'Eclosão Prevista', 'tag-eclosao');
-    });
-
-    eventos.sort((a, b) => a.data - b.data);
-    eventos = eventos.filter(e => e.data >= new Date(new Date().setHours(0,0,0,0)));
-
-    if(!eventos.length) { container.innerHTML = '<p style="text-align:center; color:var(--text-secondary); margin-top:40px;">Sem eventos futuros.</p>'; return; }
-
-    container.innerHTML = eventos.map(ev => `
-        <div class="card">
-            <div class="event-date">${ev.data.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-            <div class="event-lote-name">Lote: ${ev.lote}</div>
-            <div><span class="event-tag ${ev.tag}">${ev.tipo}</span></div>
-        </div>
-    `).join('');
-}
-
-// === CONFIG & API KEY SEGURA ===
-const modalSettings = document.getElementById('modal-settings');
-const inputApiKey = document.getElementById('input-api-key');
-
-document.getElementById('btn-settings').addEventListener('click', () => { toggleApiView(); modalSettings.classList.add('show'); });
-document.getElementById('close-settings').addEventListener('click', () => modalSettings.classList.remove('show'));
-
-function toggleApiView() {
-    if (state.apiKey) {
-        document.getElementById('api-key-view').style.display = 'none';
-        document.getElementById('api-key-active-view').style.display = 'block';
-        document.getElementById('btn-remove-api').style.display = 'block';
-        document.getElementById('btn-save-api').style.display = 'none';
-    } else {
-        document.getElementById('api-key-view').style.display = 'block';
-        document.getElementById('api-key-active-view').style.display = 'none';
-        document.getElementById('btn-remove-api').style.display = 'none';
-        document.getElementById('btn-save-api').style.display = 'block';
-        inputApiKey.value = '';
-    }
-}
-
-document.getElementById('btn-save-api').addEventListener('click', () => {
-    const key = inputApiKey.value.trim();
-    if (!key.startsWith('gsk_')) return alert("Chave inválida (precisa iniciar com gsk_)");
-    state.apiKey = key; saveState(); inputApiKey.value = ''; toggleApiView();
-});
-
-document.getElementById('btn-remove-api').addEventListener('click', () => {
-    showDeleteProtection(
-        'Remover Chave da IA?',
-        'A inteligência artificial ficará inativa até que uma nova chave seja inserida.',
-        () => {
-            state.apiKey = ""; 
-            saveState(); 
-            toggleApiView(); 
+    if (editId) {
+        // Edição
+        const sp = state.species.find(s => s.id === parseInt(editId));
+        if (sp) {
+            sp.name = name; sp.days = days; sp.temp = temp; sp.humidity = humidity;
         }
-    );
-});
-
-// === IA GROQ ===
-const chatInput = document.getElementById('chat-input');
-const chatMessages = document.getElementById('chat-messages');
-
-document.getElementById('btn-send-chat').addEventListener('click', sendChatMessage);
-chatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChatMessage(); });
-
-async function sendChatMessage() {
-    const msg = chatInput.value.trim();
-    if (!msg) return;
-    if (!state.apiKey) return alert("Configure a chave da API nas Configurações.");
-
-    appendMessage(msg, 'user');
-    chatInput.value = '';
-    const typingId = appendMessage("Analisando...", 'bot');
-
-    try {
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${state.apiKey}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model: "llama-3.3-70b-versatile",
-                messages: [
-                    { role: "system", content: "Você é um Veterinário e Especialista Sênior em Incubação Artificial de Ovos. Responda com precisão técnica mas acessível." },
-                    ...getChatHistory(),
-                    { role: "user", content: msg }
-                ]
-            })
-        });
-        if (!response.ok) throw new Error((await response.json()).error?.message || "Erro na API");
-        const data = await response.json();
-        document.getElementById(typingId).remove();
-        appendMessage(data.choices[0].message.content, 'bot');
-    } catch (error) {
-        document.getElementById(typingId).remove();
-        appendMessage(`Erro: ${error.message}`, 'bot');
+    } else {
+        // Criação
+        state.species.push({ id: Date.now(), name, days, temp, humidity });
     }
+
+    saveState();
+    closeModal('modal-species');
+    renderSpeciesTable();
 }
 
-function appendMessage(text, sender) {
-    const div = document.createElement('div');
-    div.className = `chat-msg ${sender}`;
-    div.id = `msg-${Date.now()}`;
-    div.innerHTML = `<p>${text.replace(/\n/g, '<br>')}</p>`;
-    chatMessages.appendChild(div);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-    return div.id;
+// --- RENDERIZAÇÃO: TABELA DE ESPÉCIES ---
+function renderSpeciesTable() {
+    const tbody = document.getElementById('especies-tbody');
+    tbody.innerHTML = '';
+
+    state.species.forEach(sp => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="color: var(--accent); font-weight: 700;">${sp.name}</td>
+            <td>${sp.days} dias</td>
+            <td>${sp.temp}°C</td>
+            <td>${sp.humidity}%</td>
+            <td>
+                <button class="btn-icon edit" data-id="${sp.id}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button class="btn-icon del" data-id="${sp.id}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+            </td>
+        `;
+
+        tr.querySelector('.edit').addEventListener('click', () => {
+            document.getElementById('species-modal-title').innerText = 'Editar Espécie';
+            document.getElementById('edit-species-id').value = sp.id;
+            document.getElementById('sp-nome').value = sp.name;
+            document.getElementById('sp-dias').value = sp.days;
+            document.getElementById('sp-temp').value = sp.temp;
+            document.getElementById('sp-humid').value = sp.humidity;
+            openModal('modal-species');
+        });
+
+        tr.querySelector('.del').addEventListener('click', () => {
+            if (confirm(`Excluir "${sp.name}" da tabela?`)) {
+                state.species = state.species.filter(s => s.id !== sp.id);
+                saveState();
+                renderSpeciesTable();
+            }
+        });
+
+        tbody.appendChild(tr);
+    });
 }
 
-function getChatHistory() {
-    return Array.from(chatMessages.querySelectorAll('.chat-msg')).map(m => ({
-        role: m.classList.contains('user') ? 'user' : 'assistant',
-        content: m.innerText
-    }));
-}
+// --- RENDERIZAÇÃO: CALENDÁRIO ---
+function renderCalendar() {
+    const container = document.getElementById('calendar-events');
+    container.innerHTML = '';
+    
+    const activeLote = state.lotes.find(l => l.id === state.activeLoteId);
 
-// === INIT ===
-function init() {
-    loadState();
-    renderDashboard();
-    renderTimeline();
-    initLotesForm();
-    renderEspecies();
-}
+    if (!activeLote) {
+        container.innerHTML = '<p style="text-align:center; color:var(--text-secondary); margin-top:40px;">Ative um lote para ver a agenda.</p>';
+        return;
+    }
 
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(e => console.error(e)));
-}
+    const species = state.species.find(s => s.name === activeLote.speciesName);
+    if (!species) return;
 
-init();
+    const start = new Date(activeLote.startDate + 'T00:00:00');
+    
+    const events = [
+        { date: new Date(start), title: 'Início da Incubação', type: 'parada' },
+        { date: new Date(start.getTime() + (7 * 24*60*60*1000)), title: '1ª Ovoscopia', type: 'ovoscopia' },
+        { date: new Date(start.getTime() + (14 * 24*60*60*1000)), title: '2ª Ovoscopia (Opcional)', type: 'ovoscopia' },
+        { date: new Date(start.getTime() + ((speci
