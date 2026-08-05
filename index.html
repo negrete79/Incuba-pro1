@@ -5,86 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0a0a0a">
     <meta name="description" content="Controle profissional de incubação de ovos">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- PWA: impede ícone do Google ao lado do ícone do app -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" id="pwa-manifest">
     
-    <!-- Ícones Premium (Ovo Dourado) -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%230a0a0a'/%3E%3Cpath d='M256 100c-70 0-130 60-130 140 0 100 60 180 110 220 10 8 30 8 40 0 50-40 110-120 110-220 0-80-60-140-130-140z' fill='%23d4af37'/%3E%3Cpath d='M256 140c-20 0-40 10-40 30 0 30 20 50 40 70 20-20 40-40 40-70 0-20-20-30-40-30z' fill='%230a0a0a' opacity='0.3'/%3E%3C/svg%3E">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%23d4af37'/%3E%3Cpath d='M256 100c-70 0-130 60-130 140 0 100 60 180 110 220 10 8 30 8 40 0 50-40 110-120 110-220 0-80-60-140-130-140z' fill='%230a0a0a'/%3E%3Cpath d='M256 140c-20 0-40 10-40 30 0 30 20 50 40 70 20-20 40-40 40-70 0-20-20-30-40-30z' fill='%23d4af37' opacity='0.3'/%3E%3C/svg%3E">
+    <!-- Ícone Ovo Dourado com Fundo Preto -->
+    <link rel="icon" type="image/png" sizes="192x192" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADbSURBVFhH7ZY9DoMwDIUDC+fgCByAA3BRHQSXQER0El0BF9Eo9YlOaSnJN0/s/aJPmyNJkmSR4RPMiOMi5xV2kYRMWcZksniE0kEmM0mM0m80m80ms9nsYjKZTCKTyWSSYjKZjMRiMplMJCgP0oBNzDZqoBHoBSqBk+gFDiBXkAKnEEqoQx6AUOgV9ACpxBKqEMegFDIFfQAqcQSqhDHoBS6AX0AKnEEqoQx6AUugF9ACpxBKqEMegFPojmdrZW0yP8RERF0ohFpbmyMRCIR6eCAiCgRqSjFf+Q3AFY9SV1b2WWSAAAAAElFTkSuQmCC">
+    <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADbSURBVFhH7ZY9DoMwDIUDC+fgCByAA3BRHQSXQER0El0BF9Eo9YlOaSnJN0/s/aJPmyNJkmSR4RPMiOMi5xV2kYRMWcZksniE0kEmM0mM0m80m80ms9nsYjKZTCKTyWSSYjKZjMRiMplMJCgP0oBNzDZqoBHoBSqBk+gFDiBXkAKnEEqoQx6AUOgV9ACpxBKqEMegFDIFfQAqcQSqhDHoBS6AX0AKnEEqoQx6AUugF9ACpxBKqEMegFPojmdrZW0yP8RERF0ohFpbmyMRCIR6eCAiCgRqSjFf+Q3AFY9SV1b2WWSAAAAAElFTkSuQmCC">
     
-    <link rel="manifest" href="manifest.json">
     <title>IncubaPro</title>
 
-    <!-- CSS EMBUTIDO PARA EVITAR CACHE DO NAVEGADOR -->
     <style>
         :root {
-            --bg-primary: #0a0a0a;
-            --bg-secondary: #111111;
-            --glass-bg: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --text-primary: #ffffff;
-            --text-secondary: #8a8a8a;
-            --accent: #d4af37;
-            --accent-glow: rgba(212, 175, 55, 0.15);
-            --accent-orange: #e67e22;
-            --danger: #ff4757;
-            --success: #2ed573;
-            --radius: 20px;
-            --radius-sm: 12px;
-            --nav-height: 75px;
-            --header-height: 65px;
+            --bg-primary: #0a0a0a; --bg-secondary: #111111; --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08); --text-primary: #ffffff; --text-secondary: #8a8a8a;
+            --accent: #d4af37; --accent-glow: rgba(212, 175, 55, 0.15); --accent-orange: #e67e22;
+            --danger: #ff4757; --success: #2ed573; --radius: 20px; --radius-sm: 12px;
+            --nav-height: 75px; --header-height: 65px;
         }
-
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
-
-        body {
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            padding-top: var(--header-height);
-            padding-bottom: var(--nav-height);
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        /* HEADER & NAV */
-        #app-header {
-            position: fixed; top: 0; left: 0; width: 100%; height: var(--header-height);
-            background: rgba(10,10,10,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--glass-border);
-            display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 100;
-        }
+        body { background-color: var(--bg-primary); color: var(--text-primary); padding-top: var(--header-height); padding-bottom: var(--nav-height); min-height: 100vh; overflow-x: hidden; }
+        
+        #app-header { position: fixed; top: 0; left: 0; width: 100%; height: var(--header-height); background: rgba(10,10,10,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 100; }
         #header-title { font-size: 1.4rem; color: var(--accent); font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
         .header-btn { background: none; border: none; color: var(--text-secondary); width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 50%; }
         .header-btn:active { background: var(--glass-bg); }
         .header-btn svg { width: 24px; height: 24px; }
 
-        #bottom-nav {
-            position: fixed; bottom: 0; left: 0; width: 100%; height: var(--nav-height);
-            background: rgba(10,10,10,0.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border-top: 1px solid var(--glass-border);
-            display: flex; justify-content: space-around; align-items: center; z-index: 100; padding-bottom: 10px;
-        }
+        #bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: var(--nav-height); background: rgba(10,10,10,0.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--glass-border); display: flex; justify-content: space-around; align-items: center; z-index: 100; padding-bottom: 10px; }
         .nav-btn { background: none; border: none; color: var(--text-secondary); display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 0.65rem; font-weight: 600; cursor: pointer; padding: 8px; transition: 0.2s; position: relative; }
         .nav-btn svg { width: 24px; height: 24px; transition: 0.2s; }
         .nav-btn.active { color: var(--accent); }
         .nav-btn.active::before { content: ''; position: absolute; top: -1px; left: 50%; transform: translateX(-50%); width: 20px; height: 3px; background: var(--accent); border-radius: 0 0 4px 4px; }
 
-        /* VIEWS */
         .view { display: none; padding: 20px; animation: fadeIn 0.4s ease; }
         .view.active { display: block; }
         #view-ia.active { display: flex; flex-direction: column; height: calc(100vh - var(--header-height) - var(--nav-height)); padding: 0; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* GLASSMORPHISM CARDS */
-        .glass-card {
-            background: var(--glass-bg); border: 1px solid var(--glass-border);
-            border-radius: var(--radius); padding: 20px; margin-bottom: 20px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-        }
-
-        /* DASHBOARD HOME */
+        .glass-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3); }
         .dashboard-hero { background: linear-gradient(145deg, rgba(212, 175, 55, 0.05), rgba(10, 10, 10, 0.8)); border: 1px solid rgba(212, 175, 55, 0.15); }
         .hero-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px; }
-        .badge-status { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 4px 10px; border-radius: 20px; background: rgba(46, 213, 115, 0.15); color: var(--success); }
+        
+        .badge-status { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 4px 10px; border-radius: 20px; }
         .badge-status.inactive { background: rgba(255, 71, 87, 0.15); color: var(--danger); }
+        .badge-status.active { background: rgba(46, 213, 115, 0.15); color: var(--success); animation: blinkBadge 1.5s infinite; }
+        @keyframes blinkBadge { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
         .hero-title { font-size: 1.2rem; font-weight: 700; color: var(--text-primary); }
         .hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
         .hero-stat { display: flex; flex-direction: column; gap: 6px; }
@@ -99,7 +69,6 @@
         .progress-bar-bg.slim { height: 3px; margin-top: 15px; }
         .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-orange)); border-radius: 2px; transition: width 0.5s ease; }
 
-        /* ALARME */
         .alarm-container { display: flex; align-items: center; justify-content: space-between; padding: 15px 20px; }
         .alarm-info { display: flex; align-items: center; gap: 15px; color: var(--text-secondary); }
         .alarm-info strong { color: var(--text-primary); display: block; font-size: 0.95rem; }
@@ -108,7 +77,6 @@
         .btn-alarm.active { background: var(--danger); color: #fff; border-color: var(--danger); animation: pulse 1s infinite; }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(255, 71, 87, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); } }
 
-        /* TIMELINE */
         .section-title { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
         .timeline { list-style: none; position: relative; padding-left: 35px; }
         .timeline::before { content: ''; position: absolute; left: 11px; top: 10px; bottom: 10px; width: 2px; background: var(--glass-border); }
@@ -119,8 +87,11 @@
         .timeline h3 { font-size: 0.9rem; margin-bottom: 4px; color: var(--text-primary); transition: 0.3s; }
         .timeline p { font-size: 0.78rem; color: var(--text-secondary); line-height: 1.4; }
         .timeline li.completed h3 { color: var(--accent); }
+        
+        .timeline-alert { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 0.75rem; font-weight: 700; color: #fff; background: rgba(230, 126, 34, 0.2); padding: 8px 10px; border-radius: 8px; border-left: 3px solid var(--accent-orange); }
+        .timeline-alert.done { color: #fff; background: rgba(46, 213, 115, 0.2); border-left-color: var(--success); }
+        .btn-test-sound { background: var(--accent-orange); color: #fff; border: none; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 800; cursor: pointer; margin-left: auto; }
 
-        /* LOTES */
         #view-lotes, #view-especies { position: relative; padding-bottom: 80px; }
         .fab-button { position: fixed; bottom: calc(var(--nav-height) + 15px); right: 20px; background: var(--accent); color: #000; border: none; padding: 15px 25px; border-radius: 30px; font-weight: 800; box-shadow: 0 10px 30px rgba(212, 175, 55, 0.25); cursor: pointer; z-index: 50; font-size: 0.9rem; }
         .card-list { display: flex; flex-direction: column; gap: 15px; }
@@ -132,17 +103,21 @@
         .btn-delete { margin-top: 15px; background: none; border: 1px solid rgba(255,71,87,0.3); color: var(--danger); padding: 10px; width: 100%; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: 0.2s; }
         .btn-delete:active { background: rgba(255,71,87,0.1); }
 
-        /* CHAT IA */
         .chat-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
         .chat-msg { max-width: 85%; padding: 14px 18px; border-radius: 18px; font-size: 0.9rem; line-height: 1.5; }
         .chat-msg.bot { background: var(--glass-bg); border: 1px solid var(--glass-border); align-self: flex-start; border-bottom-left-radius: 6px; }
         .chat-msg.user { background: var(--accent); color: #000; align-self: flex-end; border-bottom-right-radius: 6px; font-weight: 500; }
+        
+        .chat-triggers { display: flex; gap: 8px; padding: 10px 15px; background: var(--bg-secondary); overflow-x: auto; border-top: 1px solid var(--glass-border); }
+        .chat-triggers::-webkit-scrollbar { display: none; }
+        .trigger-btn { background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text-primary); padding: 8px 15px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; white-space: nowrap; cursor: pointer; transition: 0.2s; }
+        .trigger-btn:active { background: var(--accent); color: #000; border-color: var(--accent); }
+
         .chat-input-container { display: flex; padding: 15px; background: var(--bg-secondary); border-top: 1px solid var(--glass-border); }
         #chat-input { flex: 1; background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text-primary); padding: 14px 20px; border-radius: 30px; font-size: 0.95rem; outline: none; }
         #chat-input:focus { border-color: var(--accent); }
         #btn-send-chat { background: var(--accent); border: none; color: #000; width: 50px; height: 50px; border-radius: 50%; margin-left: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
-        /* ESPÉCIES */
         .table-responsive { overflow-x: auto; margin-top: 10px; border-radius: var(--radius); border: 1px solid var(--glass-border); }
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; background: var(--glass-bg); }
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid var(--glass-border); }
@@ -152,7 +127,6 @@
         .btn-icon:hover { border-color: var(--accent); color: var(--accent); }
         .btn-icon.del:hover { border-color: var(--danger); color: var(--danger); }
 
-        /* MODAIS */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 200; display: none; align-items: flex-end; justify-content: center; }
         .modal.show { display: flex; }
         .modal-content { background: #1a1a1a; width: 100%; max-height: 90vh; border-radius: 24px 24px 0 0; padding: 25px; overflow-y: auto; border-top: 1px solid var(--glass-border); animation: slideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
@@ -161,7 +135,6 @@
         .modal-header h2 { font-size: 1.3rem; color: var(--text-primary); font-weight: 800; }
         .modal-close { background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text-secondary); font-size: 1.2rem; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
-        /* FORMS */
         .input-group { margin-bottom: 18px; display: flex; flex-direction: column; gap: 8px; }
         .input-group label { font-size: 0.8rem; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
         .input-group input, .input-group select { background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text-primary); padding: 14px 16px; border-radius: var(--radius-sm); font-size: 1rem; outline: none; transition: 0.2s; }
@@ -175,7 +148,6 @@
         .api-active-badge { display: flex; align-items: center; gap: 12px; padding: 18px; background: rgba(46, 213, 115, 0.05); border-radius: var(--radius-sm); border: 1px solid rgba(46, 213, 115, 0.2); color: var(--success); font-weight: 700; }
         .settings-desc { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 25px; line-height: 1.5; }
 
-        /* CALENDARIO */
         .event-date { color: var(--accent); font-weight: 800; font-size: 0.95rem; margin-bottom: 5px; letter-spacing: 0.5px; }
         .event-lote-name { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 10px; }
         .event-tag { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; margin-right: 5px; }
@@ -183,19 +155,10 @@
         .tag-parada { background: rgba(230, 126, 34, 0.15); color: #e67e22; }
         .tag-eclosao { background: rgba(46, 213, 115, 0.15); color: #2ed573; }
 
-        /* CAIXA DE AJUDA DA API GROQ */
-        .api-help-box {
-            display: flex; gap: 15px; background: rgba(212, 175, 55, 0.05);
-            border: 1px solid rgba(212, 175, 55, 0.2); border-radius: 16px; 
-            padding: 20px; margin-bottom: 25px; align-items: flex-start;
-        }
+        .api-help-box { display: flex; gap: 15px; background: rgba(212, 175, 55, 0.05); border: 1px solid rgba(212, 175, 55, 0.2); border-radius: 16px; padding: 20px; margin-bottom: 25px; align-items: flex-start; }
         .help-text strong { display: block; color: #ffffff; font-size: 0.95rem; margin-bottom: 6px; }
         .help-text p { color: #8a8a8a; font-size: 0.82rem; line-height: 1.5; margin-bottom: 15px; }
-        .btn-groq-link {
-            display: inline-flex; align-items: center; gap: 8px; background: #d4af37; color: #000;
-            text-decoration: none; padding: 12px 20px; border-radius: 30px; font-size: 0.8rem;
-            font-weight: 800; transition: 0.2s; text-transform: uppercase; letter-spacing: 0.5px;
-        }
+        .btn-groq-link { display: inline-flex; align-items: center; gap: 8px; background: #d4af37; color: #000; text-decoration: none; padding: 12px 20px; border-radius: 30px; font-size: 0.8rem; font-weight: 800; transition: 0.2s; text-transform: uppercase; letter-spacing: 0.5px; }
         .btn-groq-link:active { transform: scale(0.95); background: #e67e22; }
     </style>
 </head>
@@ -232,6 +195,14 @@
                 <button id="btn-alarm" class="btn-alarm">LIGAR</button>
             </div>
 
+            <div class="glass-card alarm-container">
+                <div class="alarm-info">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    <div><strong>Viragem Automática</strong><p id="auto-turn-text">Motor desligado</p></div>
+                </div>
+                <button id="btn-auto-turn" class="btn-alarm">LIGAR</button>
+            </div>
+
             <h3 class="section-title">Checklist de Preparação</h3>
             <ul id="timeline-steps" class="timeline"></ul>
         </section>
@@ -243,7 +214,15 @@
 
         <section id="view-ia" class="view">
             <div id="chat-messages" class="chat-container">
-                <div class="chat-msg bot"><p>Olá! Sou o especialista em incubação. Como posso ajudar?</p></div>
+                <div class="chat-msg bot"><p>Olá! Sou o especialista em incubação. Use os atalhos abaixo ou digite sua dúvida.</p></div>
+            </div>
+            <div class="chat-triggers">
+                <button class="trigger-btn" data-msg="Como está o meu lote atual?">📊 Status Atual</button>
+                <button class="trigger-btn" data-msg="Qual a temperatura e umidade ideais para a espécie que estou incubando?">🌡️ Temp & Umidade</button>
+                <button class="trigger-btn" data-msg="Como devo fazer a ovoscopia passo a passo?">🔍 Ovoscopia</button>
+                <button class="trigger-btn" data-msg="O que fazer se a temperatura cair de repente na incubadora?">🥶 Queda de Temp</button>
+                <button class="trigger-btn" data-msg="Como proceder nos últimos 3 dias antes da eclosão?">🥚 Últimos Dias</button>
+                <button class="trigger-btn" data-msg="Quais os problemas mais comuns na incubação e como evitar?">⚠️ Problemas Comuns</button>
             </div>
             <div class="chat-input-container">
                 <input type="text" id="chat-input" placeholder="Digite sua dúvida..." autocomplete="off">
@@ -279,6 +258,15 @@
         <div class="modal-content">
             <div class="modal-header"><h2>Configurações</h2><button class="modal-close" id="close-settings">&times;</button></div>
             <div class="modal-body">
+                <div class="api-help-box" style="background: rgba(52, 152, 219, 0.05); border-color: rgba(52, 152, 219, 0.2); margin-bottom: 30px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#3498db" stroke-width="2" width="22" height="22"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <div class="help-text">
+                        <strong>Instalar como Aplicativo (Offline)</strong>
+                        <p>Para funcionar offline e não perder dados, instale como app:</p>
+                        <p style="color: #fff; font-size: 0.85rem;"><strong>Chrome/Edge:</strong> Toque nos 3 pontinhos ⋮ → <strong>"Instalar Aplicativo"</strong> ou <strong>"Adicionar à tela inicial"</strong>.</p>
+                    </div>
+                </div>
+
                 <p class="settings-desc">Para ativar a IA Assistente, você precisa de uma chave de acesso.</p>
                 <div id="api-help-box" class="api-help-box">
                     <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" width="22" height="22"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -329,7 +317,366 @@
         </div>
     </div>
 
-    <!-- AINDA CHAMA O APP.JS NORMAL -->
-    <script src="app.js"></script>
+    <script>
+        // ==========================================
+        // PWA: Manifest dinâmico via Blob (sem arquivo extra)
+        // Isso evita o ícone do Google aparecer ao lado
+        // ==========================================
+        (function initPWA() {
+            // Ícone 192x192 e 512x512 em base64 (ovo dourado fundo preto)
+            var icon192 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADbSURBVFhH7ZY9DoMwDIUDC+fgCByAA3BRHQSXQER0El0BF9Eo9YlOaSnJN0/s/aJPmyNJkmSR4RPMiOMi5xV2kYRMWcZksniE0kEmM0mM0m80m80ms9nsYjKZTCKTyWSSYjKZjMRiMplMJCgP0oBNzDZqoBHoBSqBk+gFDiBXkAKnEEqoQx6AUOgV9ACpxBKqEMegFDIFfQAqcQSqhDHoBS6AX0AKnEEqoQx6AUugF9ACpxBKqEMegFPojmdrZW0yP8RERF0ohFpbmyMRCIR6eCAiCgRqSjFf+Q3AFY9SV1b2WWSAAAAAElFTkSuQmCC';
+
+            var manifest = {
+                name: 'IncubaPro',
+                short_name: 'IncubaPro',
+                description: 'Controle profissional de incubação de ovos',
+                start_url: '.',
+                display: 'standalone',
+                background_color: '#0a0a0a',
+                theme_color: '#0a0a0a',
+                orientation: 'portrait',
+                scope: '.',
+                icons: [
+                    { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'any' },
+                    { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+                    { src: icon192, sizes: '512x512', type: 'image/png', purpose: 'any' },
+                    { src: icon192, sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+                ],
+                categories: ['utilities', 'productivity'],
+                prefer_related_applications: false
+            };
+
+            var blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+            var manifestURL = URL.createObjectURL(blob);
+            document.getElementById('pwa-manifest').setAttribute('href', manifestURL);
+
+            // Registra o Service Worker via Blob para funcionar offline
+            if ('serviceWorker' in navigator) {
+                var swCode = [
+                    'const CACHE = "incubapro-v3";',
+                    'const ASSETS = [self.location.href.replace(/\\/sw\\.js.*$/, "/")];',
+                    '',
+                    'self.addEventListener("install", e => {',
+                    '  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));',
+                    '  self.skipWaiting();',
+                    '});',
+                    '',
+                    'self.addEventListener("activate", e => {',
+                    '  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))));',
+                    '  self.clients.claim();',
+                    '});',
+                    '',
+                    'self.addEventListener("fetch", e => {',
+                    '  if (e.request.method !== "GET") return;',
+                    '  e.respondWith(',
+                    '    caches.match(e.request).then(r => {',
+                    '      if (r) return r;',
+                    '      return fetch(e.request).then(resp => {',
+                    '        if (resp && resp.status === 200 && resp.type === "basic") {',
+                    '          var clone = resp.clone();',
+                    '          caches.open(CACHE).then(c => c.put(e.request, clone));',
+                    '        }',
+                    '        return resp;',
+                    '      }).catch(() => {',
+                    '        if (e.request.destination === "document") {',
+                    '          return caches.match(ASSETS[0] || "./");',
+                    '        }',
+                    '      });',
+                    '    })',
+                    '  );',
+                    '});'
+                ].join('\n');
+
+                var swBlob = new Blob([swCode], { type: 'application/javascript' });
+                var swURL = URL.createObjectURL(swBlob);
+
+                navigator.serviceWorker.register(swURL, { scope: './' }).then(function(reg) {
+                    console.log('SW registrado:', reg.scope);
+                }).catch(function(err) {
+                    // Tenta registrar sem scope restrito
+                    navigator.serviceWorker.register(swURL).catch(function(e2) {
+                        console.log('SW via blob não suportado, PWA parcial:', e2);
+                    });
+                });
+            }
+        })();
+
+        // ==========================================
+        // PWA: Salvar tudo ao sair do app
+        // visibilitychange cobre: minimizar, trocar de app, fechar aba
+        // beforeunload cobre: fechar aba/janela
+        // pagehide cobre: descarte pelo SO (mobile)
+        // ==========================================
+        function forceSaveBeforeExit() {
+            try { saveState(); } catch(e) { console.log('Erro ao salvar:', e); }
+        }
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'hidden') forceSaveBeforeExit();
+        });
+        window.addEventListener('beforeunload', forceSaveBeforeExit);
+        window.addEventListener('pagehide', forceSaveBeforeExit);
+
+        // Salvar também quando o sinal de rede cai (útil para não perder nada)
+        window.addEventListener('offline', forceSaveBeforeExit);
+
+        // ==========================================
+        // SISTEMA DE DADOS (VERSÃO 2 - NUNCA APAGA DADOS DO USUÁRIO)
+        // ==========================================
+        const CURRENT_VERSION = 2; 
+        const DEFAULT_SPECIES = [
+            { id: 1, name: 'Galinha', days: 21, temp: 37.5, humidity: 60 },
+            { id: 2, name: 'Pato', days: 28, temp: 37.5, humidity: 65 },
+            { id: 3, name: 'Codorna', days: 17, temp: 37.8, humidity: 55 },
+            { id: 4, name: 'Peru', days: 28, temp: 37.5, humidity: 60 },
+            { id: 5, name: 'Pavão', days: 28, temp: 37.2, humidity: 60 },
+            { id: 6, name: 'Calopsita', days: 18, temp: 37.5, humidity: 55 },
+            { id: 7, name: 'Faisão', days: 24, temp: 37.5, humidity: 60 },
+            { id: 8, name: 'Ganso', days: 30, temp: 37.5, humidity: 70 }
+        ];
+
+        let state = {
+            lotes: [], activeLoteId: null, apiKey: '',
+            alarmInterval: null, alarmTimeLeft: 7200,
+            timeline: [
+                { id: 1, title: 'Aquecer a incubadora', desc: 'Ligue 24h antes para estabilizar a temperatura.', done: false, triggerDay: -1 },
+                { id: 2, title: 'Colocar os ovos', desc: 'Posicione com a ponta mais fina para baixo.', done: false, triggerDay: 0 },
+                { id: 3, title: 'Iniciar viragens', desc: 'Vire os ovos no mínimo 3 vezes ao dia.', done: false, triggerDay: 0 },
+                { id: 4, title: 'Ovoscopia (Dia 7)', desc: 'Verifique se há embrião em desenvolvimento.', done: false, triggerDay: 7 },
+                { id: 5, title: 'Parar viragens (3 dias antes)', desc: 'Deixe os ovos em repouso para o nascimento.', done: false, triggerDay: -3 },
+                { id: 6, title: 'Eclosão', desc: 'Não abra a incubadora! Aguarde os pintinhos secarem.', done: false, triggerDay: -1 }
+            ]
+        };
+
+        // ==========================================
+        // ALARME SONORO
+        // ==========================================
+        let audioCtx = null;
+        const iconBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADbSURBVFhH7ZY9DoMwDIUDC+fgCByAA3BRHQSXQER0El0BF9Eo9YlOaSnJN0/s/aJPmyNJkmSR4RPMiOMi5xV2kYRMWcZksniE0kEmM0mM0m80m80ms9nsYjKZTCKTyWSSYjKZjMRiMplMJCgP0oBNzDZqoBHoBSqBk+gFDiBXkAKnEEqoQx6AUOgV9ACpxBKqEMegFDIFfQAqcQSqhDHoBS6AX0AKnEEqoQx6AUugF9ACpxBKqEMegFPojmdrZW0yP8RERF0ohFpbmyMRCIR6eCAiCgRqSjFf+Q3AFY9SV1b2WWSAAAAAElFTkSuQmCC';
+
+        function triggerUrgentAlarm(taskTitle) {
+            try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); const osc1 = audioCtx.createOscillator(); const osc2 = audioCtx.createOscillator(); const gainNode = audioCtx.createGain(); gainNode.gain.setValueAtTime(1, audioCtx.currentTime); gainNode.connect(audioCtx.destination); osc1.type = 'sawtooth'; osc1.frequency.setValueAtTime(400, audioCtx.currentTime); osc1.connect(gainNode); osc2.type = 'square'; osc2.frequency.setValueAtTime(800, audioCtx.currentTime); osc2.connect(gainNode); osc1.start(); osc2.start(); osc1.stop(audioCtx.currentTime + 1.5); osc2.stop(audioCtx.currentTime + 1.5); } catch (e) { console.error(e); }
+            if ("Notification" in window && Notification.permission === "granted") new Notification('🚨 IncubaPro - Ação Necessária!', { body: 'Chegou a hora: ' + taskTitle, icon: iconBase64, requireInteraction: true });
+            if ("vibrate" in navigator) navigator.vibrate([1000, 500, 1000]);
+        }
+
+        // ==========================================
+        // INICIALIZAÇÃO
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
+            loadState(); setupNavigation(); setupModals(); setupAlarm(); setupAutoTurn(); setupForms(); setupChat(); renderAll();
+        });
+
+        function saveState() {
+            localStorage.setItem('incubapro_v2', JSON.stringify({
+                version: CURRENT_VERSION, lotes: state.lotes,
+                activeLoteId: state.activeLoteId, apiKey: state.apiKey, timeline: state.timeline
+            }));
+        }
+
+        function loadState() {
+            const saved = localStorage.getItem('incubapro_v2');
+            if (saved) {
+                const p = JSON.parse(saved);
+                state.lotes = p.lotes || [];
+                state.activeLoteId = p.activeLoteId || null;
+                state.apiKey = p.apiKey || '';
+                state.timeline = p.timeline || state.timeline;
+            }
+            updateApiKeyUI();
+        }
+
+        // ==========================================
+        // NAVEGAÇÃO E MODAIS
+        // ==========================================
+        function setupNavigation() { document.querySelectorAll('.nav-btn').forEach(btn => { btn.addEventListener('click', () => switchView(btn.getAttribute('data-view'))); }); }
+        function switchView(viewId) {
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.nav-btn[data-view="' + viewId + '"]').classList.add('active');
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById('view-' + viewId).classList.add('active');
+            const titles = { home: 'IncubaPro', lotes: 'Meus Lotes', ia: 'Assistente IA', calendario: 'Agenda', especies: 'Espécies' };
+            document.getElementById('header-title').innerText = titles[viewId] || 'IncubaPro';
+            if (viewId === 'lotes') renderLotes(); if (viewId === 'especies') renderSpeciesTable(); if (viewId === 'calendario') renderCalendar();
+        }
+        function setupModals() {
+            document.getElementById('btn-settings').addEventListener('click', () => openModal('modal-settings'));
+            document.getElementById('close-settings').addEventListener('click', () => closeModal('modal-settings'));
+            document.getElementById('btn-add-lote').addEventListener('click', () => { resetLoteForm(); populateSpeciesSelect(); openModal('modal-lote'); });
+            document.getElementById('close-lote').addEventListener('click', () => closeModal('modal-lote'));
+            document.getElementById('btn-add-species').addEventListener('click', () => { resetSpeciesForm(); document.getElementById('species-modal-title').innerText = 'Nova Espécie'; openModal('modal-species'); });
+            document.getElementById('close-species').addEventListener('click', () => closeModal('modal-species'));
+            document.querySelectorAll('.modal').forEach(modal => { modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(modal.id); }); });
+        }
+        function openModal(id) { document.getElementById(id).classList.add('show'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+        // ==========================================
+        // API KEY GROQ
+        // ==========================================
+        function updateApiKeyUI() {
+            const hasKey = state.apiKey.length > 10;
+            document.getElementById('api-key-view').style.display = hasKey ? 'none' : 'block';
+            document.getElementById('api-key-active-view').style.display = hasKey ? 'block' : 'none';
+            document.getElementById('btn-remove-api').style.display = hasKey ? 'block' : 'none';
+            document.getElementById('input-api-key').value = hasKey ? '••••••••••••••••' : '';
+        }
+        document.getElementById('btn-save-api').addEventListener('click', () => {
+            const input = document.getElementById('input-api-key').value;
+            if (input.startsWith('••')) { alert('A chave atual já está salva.'); return; }
+            if (input.startsWith('gsk_')) { state.apiKey = input; saveState(); updateApiKeyUI(); alert('Chave ativada com sucesso!'); }
+            else { alert('Chave inválida. Deve começar com "gsk_".'); }
+        });
+        document.getElementById('btn-remove-api').addEventListener('click', () => { state.apiKey = ''; saveState(); updateApiKeyUI(); });
+
+        // ==========================================
+        // DASHBOARD E CHECKLIST
+        // ==========================================
+        function renderDashboard() {
+            const lote = state.lotes.find(l => l.id === state.activeLoteId);
+            const statusBadge = document.querySelector('#incubator-status .badge-status');
+            const dashName = document.getElementById('dash-lote-name');
+            if (!lote) { statusBadge.className = 'badge-status inactive'; statusBadge.innerText = 'Inativa'; dashName.innerText = 'Nenhum lote ativo'; document.getElementById('dash-species').innerText = '---'; document.getElementById('dash-temp').innerText = '--'; document.getElementById('dash-humid').innerText = '--%'; document.getElementById('dash-days-left').innerText = '-- dias'; document.getElementById('dash-progress-bar').style.width = '0%'; return; }
+            statusBadge.className = 'badge-status active'; statusBadge.innerText = 'Incubadora Ativa'; dashName.innerText = lote.name;
+            const sp = DEFAULT_SPECIES.find(s => s.name === lote.speciesName) || { days: 21, temp: 37.5, humidity: 60 };
+            document.getElementById('dash-species').innerText = lote.speciesName; document.getElementById('dash-temp').innerText = sp.temp.toFixed(1); document.getElementById('dash-humid').innerText = sp.humidity + '%';
+            const start = new Date(lote.startDate + 'T00:00:00'); const today = new Date(); today.setHours(0,0,0,0);
+            const diff = Math.floor((today - start) / (1000 * 60 * 60 * 24)); const left = Math.max(0, sp.days - diff);
+            document.getElementById('dash-days-left').innerText = left + ' dias'; document.getElementById('dash-progress-bar').style.width = Math.min(100, (diff / sp.days) * 100) + '%';
+        }
+
+        function getLoteDayInfo() { const lote = state.lotes.find(l => l.id === state.activeLoteId); if (!lote) return null; const sp = DEFAULT_SPECIES.find(s => s.name === lote.speciesName) || { days: 21 }; const start = new Date(lote.startDate + 'T00:00:00'); const today = new Date(); today.setHours(0,0,0,0); return { currentDay: Math.floor((today - start) / (1000 * 60 * 60 * 24)), totalDays: sp.days }; }
+
+        function renderTimeline() {
+            const ul = document.getElementById('timeline-steps'); ul.innerHTML = ''; const info = getLoteDayInfo();
+            state.timeline.forEach(step => {
+                const li = document.createElement('li'); if (step.done) li.classList.add('completed'); let alertHtml = ''; let isCurrentTask = false;
+                if (info) { if (step.triggerDay >= 0 && info.currentDay === step.triggerDay) isCurrentTask = true; if (step.triggerDay < 0 && info.currentDay === (info.totalDays + step.triggerDay)) isCurrentTask = true; if (step.id === 3 && info.currentDay >= 0 && info.currentDay < (info.totalDays - 3)) isCurrentTask = true; if (isCurrentTask && !step.done) alertHtml = '<div class="timeline-alert"><span>⏰ AÇÃO NECESSÁRIA HOJE (Dia ' + info.currentDay + ')</span><button class="btn-test-sound" onclick="event.stopPropagation(); triggerUrgentAlarm(\'' + step.title.replace(/'/g, "\\'") + '\')">🔔 TOCAR</button></div>'; else if (isCurrentTask && step.done) alertHtml = '<span class="timeline-alert done">✅ CONCLUÍDO HOJE (Dia ' + info.currentDay + ')</span>'; }
+                li.innerHTML = '<h3>' + step.title + '</h3><p>' + step.desc + '</p>' + alertHtml;
+                li.addEventListener('click', () => { step.done = !step.done; saveState(); renderTimeline(); });
+                ul.appendChild(li);
+            });
+        }
+
+        // ==========================================
+        // ALARMES E VIRAÇÃO
+        // ==========================================
+        function setupAlarm() { document.getElementById('btn-alarm').addEventListener('click', () => { state.alarmInterval ? stopAlarm() : startAlarm(); }); }
+        function startAlarm() { const btn = document.getElementById('btn-alarm'); btn.innerText = 'DESLIGAR'; btn.classList.add('active'); state.alarmTimeLeft = 7200; state.alarmInterval = setInterval(() => { state.alarmTimeLeft--; updateAlarmDisplay(); if (state.alarmTimeLeft <= 0) { triggerUrgentAlarm('Viragem Manual'); stopAlarm(); } }, 1000); }
+        function stopAlarm() { clearInterval(state.alarmInterval); state.alarmInterval = null; const btn = document.getElementById('btn-alarm'); btn.innerText = 'LIGAR'; btn.classList.remove('active'); state.alarmTimeLeft = 7200; updateAlarmDisplay(); }
+        function updateAlarmDisplay() { const h = Math.floor(state.alarmTimeLeft / 3600).toString().padStart(2, '0'); const m = Math.floor((state.alarmTimeLeft % 3600) / 60).toString().padStart(2, '0'); const s = (state.alarmTimeLeft % 60).toString().padStart(2, '0'); document.getElementById('alarm-timer-text').innerText = 'Próxima viragem em ' + h + ':' + m + ':' + s; }
+        function setupAutoTurn() { document.getElementById('btn-auto-turn').addEventListener('click', () => { const btn = document.getElementById('btn-auto-turn'); const txt = document.getElementById('auto-turn-text'); if (btn.classList.contains('active')) { btn.innerText = 'LIGAR'; btn.classList.remove('active'); btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = ''; txt.innerText = 'Motor desligado'; } else { btn.innerText = 'ATIVO'; btn.classList.add('active'); btn.style.background = 'var(--success)'; btn.style.borderColor = 'var(--success)'; btn.style.color = '#000'; txt.innerText = 'Motor funcionando'; } }); }
+
+        // ==========================================
+        // LOTES E ESPÉCIES
+        // ==========================================
+        function renderLotes() { const c = document.getElementById('lotes-list'); c.innerHTML = ''; if (!state.lotes.length) { c.innerHTML = '<p style="text-align:center; color:var(--text-secondary); margin-top:40px;">Nenhum lote cadastrado.</p>'; return; } state.lotes.forEach(lote => { const sp = DEFAULT_SPECIES.find(s => s.name === lote.speciesName) || { days: 21 }; const start = new Date(lote.startDate + 'T00:00:00'); const today = new Date(); today.setHours(0,0,0,0); const diff = Math.floor((today - start) / (1000 * 60 * 60 * 24)); const isActive = lote.id === state.activeLoteId; const isFinished = diff >= sp.days; const card = document.createElement('div'); card.className = 'card'; card.style.cursor = 'pointer'; card.innerHTML = '<div class="card-header"><span class="card-title">' + lote.name + '</span><span class="card-badge">' + (isFinished ? 'Finalizado' : (isActive ? 'Ativo' : 'Pausado')) + '</span></div><div class="card-info"><span>Espécie:</span><span>' + lote.speciesName + '</span></div><div class="card-info"><span>Ovos:</span><span>' + lote.qtd + ' unid.</span></div><div class="card-info"><span>Início:</span><span>' + formatDate(lote.startDate) + '</span></div><button class="btn-delete" data-id="' + lote.id + '">Excluir Lote</button>'; if (!isFinished) card.addEventListener('click', (e) => { if (!e.target.classList.contains('btn-delete')) { state.activeLoteId = lote.id; saveState(); state.timeline.forEach(s => s.done = false); renderAll(); switchView('home'); } }); card.querySelector('.btn-delete').addEventListener('click', (e) => { e.stopPropagation(); if (confirm('Excluir o lote "' + lote.name + '"?')) { state.lotes = state.lotes.filter(l => l.id !== lote.id); if (state.activeLoteId === lote.id) state.activeLoteId = null; saveState(); renderLotes(); renderDashboard(); renderTimeline(); } }); c.appendChild(card); }); }
+        
+        function setupForms() { document.getElementById('lote-especie').addEventListener('change', (e) => { document.getElementById('custom-species-fields').style.display = e.target.value === '__custom__' ? 'block' : 'none'; }); document.getElementById('lote-data').valueAsDate = new Date(); document.getElementById('btn-save-lote').addEventListener('click', saveLote); document.getElementById('btn-save-species').addEventListener('click', saveSpecies); }
+        function resetLoteForm() { document.getElementById('lote-nome').value = ''; document.getElementById('lote-qtd').value = ''; document.getElementById('custom-species-fields').style.display = 'none'; ['custom-name', 'custom-days', 'custom-temp', 'custom-humid'].forEach(id => document.getElementById(id).value = ''); document.getElementById('lote-data').valueAsDate = new Date(); }
+        function populateSpeciesSelect() { const sel = document.getElementById('lote-especie'); sel.innerHTML = '<option value="">Selecione...</option>'; DEFAULT_SPECIES.forEach(s => sel.innerHTML += '<option value="' + s.name + '">' + s.name + ' (' + s.days + 'd)</option>'); sel.innerHTML += '<option value="__custom__">+ Outra Espécie</option>'; }
+        function saveLote() { const name = document.getElementById('lote-nome').value.trim(); const spVal = document.getElementById('lote-especie').value; const qtd = parseInt(document.getElementById('lote-qtd').value); const dt = document.getElementById('lote-data').value; if (!name || !spVal || !qtd || !dt) { alert('Preencha todos os campos.'); return; } let spName = spVal; if (spVal === '__custom__') { const cn = document.getElementById('custom-name').value.trim(); const cd = parseInt(document.getElementById('custom-days').value); const ct = parseFloat(document.getElementById('custom-temp').value); const ch = parseInt(document.getElementById('custom-humid').value); if (!cn || !cd || !ct || !ch) { alert('Preencha os dados da espécie customizada.'); return; } DEFAULT_SPECIES.push({ id: Date.now(), name: cn, days: cd, temp: ct, humidity: ch }); spName = cn; } const newLote = { id: Date.now(), name, speciesName: spName, qtd, startDate: dt }; state.lotes.push(newLote); state.activeLoteId = newLote.id; saveState(); closeModal('modal-lote'); state.timeline.forEach(s => s.done = false); renderAll(); switchView('home'); }
+        function resetSpeciesForm() { document.getElementById('edit-species-id').value = ''; ['sp-nome', 'sp-dias', 'sp-temp', 'sp-humid'].forEach(id => document.getElementById(id).value = ''); }
+        function saveSpecies() {
+            const editId = document.getElementById('edit-species-id').value;
+            const name = document.getElementById('sp-nome').value.trim();
+            const days = parseInt(document.getElementById('sp-dias').value);
+            const temp = parseFloat(document.getElementById('sp-temp').value);
+            const hum = parseInt(document.getElementById('sp-humid').value);
+            if (!name || !days || !temp || !hum) { alert('Preencha todos os campos.'); return; }
+            if (editId) {
+                const sp = DEFAULT_SPECIES.find(s => s.id === parseInt(editId));
+                if (sp) { sp.name = name; sp.days = days; sp.temp = temp; sp.humidity = hum; }
+            } else {
+                DEFAULT_SPECIES.push({ id: Date.now(), name, days, temp, humidity: hum });
+            }
+            saveState(); closeModal('modal-species'); renderSpeciesTable();
+        }
+        function renderSpeciesTable() {
+            const tbody = document.getElementById('especies-tbody'); tbody.innerHTML = '';
+            DEFAULT_SPECIES.forEach(sp => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td>' + sp.name + '</td><td>' + sp.days + '</td><td>' + sp.temp + '°C</td><td>' + sp.humidity + '%</td><td><button class="btn-icon edit-sp" data-id="' + sp.id + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn-icon del del-sp" data-id="' + sp.id + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></td>';
+                tr.querySelector('.edit-sp').addEventListener('click', () => {
+                    document.getElementById('edit-species-id').value = sp.id;
+                    document.getElementById('sp-nome').value = sp.name;
+                    document.getElementById('sp-dias').value = sp.days;
+                    document.getElementById('sp-temp').value = sp.temp;
+                    document.getElementById('sp-humid').value = sp.humidity;
+                    document.getElementById('species-modal-title').innerText = 'Editar Espécie';
+                    openModal('modal-species');
+                });
+                tr.querySelector('.del-sp').addEventListener('click', () => {
+                    if (confirm('Excluir "' + sp.name + '"?')) {
+                        const idx = DEFAULT_SPECIES.findIndex(s => s.id === sp.id);
+                        if (idx > -1) DEFAULT_SPECIES.splice(idx, 1);
+                        saveState(); renderSpeciesTable();
+                    }
+                });
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ==========================================
+        // CALENDÁRIO
+        // ==========================================
+        function renderCalendar() {
+            const c = document.getElementById('calendar-events'); c.innerHTML = '';
+            let events = [];
+            state.lotes.forEach(lote => {
+                const sp = DEFAULT_SPECIES.find(s => s.name === lote.speciesName) || { days: 21 };
+                const start = new Date(lote.startDate + 'T00:00:00');
+                const ovoscopia = new Date(start); ovoscopia.setDate(ovoscopia.getDate() + 7);
+                const parada = new Date(start); parada.setDate(parada.getDate() + sp.days - 3);
+                const eclosao = new Date(start); eclosao.setDate(eclosao.getDate() + sp.days);
+                events.push({ date: formatDate(ovoscopia.toISOString().split('T')[0]), loteName: lote.name, tag: 'Ovoscopia', tagClass: 'tag-ovoscopia' });
+                events.push({ date: formatDate(parada.toISOString().split('T')[0]), loteName: lote.name, tag: 'Parar Viragem', tagClass: 'tag-parada' });
+                events.push({ date: formatDate(eclosao.toISOString().split('T')[0]), loteName: lote.name, tag: 'Eclosão', tagClass: 'tag-eclosao' });
+            });
+            if (!events.length) { c.innerHTML = '<p style="text-align:center; color:var(--text-secondary); margin-top:40px;">Crie um lote para ver eventos na agenda.</p>'; return; }
+            events.sort((a, b) => a.date.localeCompare(b.date));
+            events.forEach(ev => {
+                const card = document.createElement('div'); card.className = 'card';
+                card.innerHTML = '<div class="event-date">' + ev.date + '</div><div class="event-lote-name">' + ev.loteName + '</div><span class="event-tag ' + ev.tagClass + '">' + ev.tag + '</span>';
+                c.appendChild(card);
+            });
+        }
+        function formatDate(d) { if (!d) return '---'; const parts = d.split('-'); return parts[2] + '/' + parts[1] + '/' + parts[0]; }
+
+        // ==========================================
+        // CHAT IA (GROQ)
+        // ==========================================
+        function setupChat() {
+            document.getElementById('btn-send-chat').addEventListener('click', sendChat);
+            document.getElementById('chat-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChat(); });
+            document.querySelectorAll('.trigger-btn').forEach(btn => { btn.addEventListener('click', () => { document.getElementById('chat-input').value = btn.getAttribute('data-msg'); sendChat(); }); });
+        }
+        function sendChat() {
+            const input = document.getElementById('chat-input'); const msg = input.value.trim(); if (!msg) return;
+            appendChatMsg(msg, 'user'); input.value = '';
+            if (!state.apiKey || state.apiKey.length < 10) { appendChatMsg('Para usar a IA, vá em Configurações e adicione sua chave API do Groq (é grátis).', 'bot'); return; }
+            const lote = state.lotes.find(l => l.id === state.activeLoteId);
+            const context = lote ? 'Lote ativo: ' + lote.name + ', Espécie: ' + lote.speciesName + ', Ovos: ' + lote.qtd + ', Início: ' + lote.startDate + '.' : 'Nenhum lote ativo no momento.';
+            const systemPrompt = 'Você é um especialista brasileiro em incubação de ovos de aves. Responda sempre em português do Brasil, de forma clara e objetiva. Contexto do app: ' + context;
+            const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: msg }];
+            fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + state.apiKey },
+                body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages, temperature: 0.7, max_tokens: 800 })
+            }).then(r => r.json()).then(data => {
+                if (data.choices && data.choices[0]) appendChatMsg(data.choices[0].message.content, 'bot');
+                else appendChatMsg('Erro na resposta da IA. Verifique sua chave.', 'bot');
+            }).catch(() => { appendChatMsg('Erro de conexão. Verifique sua internet e tente novamente.', 'bot'); });
+        }
+        function appendChatMsg(text, type) {
+            const container = document.getElementById('chat-messages'); const div = document.createElement('div');
+            div.className = 'chat-msg ' + type; div.innerHTML = '<p>' + text.replace(/\n/g, '<br>') + '</p>';
+            container.appendChild(div); container.scrollTop = container.scrollHeight;
+        }
+
+        // ==========================================
+        // RENDER GERAL
+        // ==========================================
+        function renderAll() { renderDashboard(); renderTimeline(); renderLotes(); renderSpeciesTable(); renderCalendar(); }
+    </script>
 </body>
 </html>
