@@ -93,14 +93,17 @@ body {
 .section-title { font-size: 1.1rem; margin: 24px 0 12px 8px; color: #fff; }
 .timeline { list-style: none; }
 .timeline li {
-    position: relative; padding-left: 30px; padding-bottom: 20px; border-left: 2px solid var(--glass-border); margin-left: 8px;
-    color: var(--text-dim); font-size: 0.95rem; cursor: pointer; transition: 0.2s;
+    position: relative; padding-left: 30px; padding-bottom: 24px; border-left: 2px solid var(--glass-border); margin-left: 8px;
+    color: var(--text); font-size: 0.95rem; cursor: pointer; transition: 0.2s;
 }
 .timeline li::before {
     content: ''; position: absolute; left: -7px; top: 4px; width: 12px; height: 12px;
     border-radius: 50%; background: var(--surface); border: 2px solid var(--text-dim); transition: 0.2s;
 }
-.timeline li.done { color: var(--success); text-decoration: line-through; opacity: 0.6; }
+.timeline li strong { display: block; margin-bottom: 4px; color: #fff; }
+.step-desc { font-size: 0.85rem; color: var(--text-dim); line-height: 1.4; margin: 0; }
+.timeline li.done { opacity: 0.5; }
+.timeline li.done strong { text-decoration: line-through; color: var(--success); }
 .timeline li.done::before { background: var(--success); border-color: var(--success); }
 
 /* LOTES & CARDS LIST */
@@ -110,13 +113,28 @@ body {
 }
 .card-list .card-item {
     background: var(--glass); border: 1px solid var(--glass-border); border-radius: var(--radius);
-    padding: 16px 20px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
+    padding: 20px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 15px;
 }
-.card-item h4 { color: #fff; margin-bottom: 4px; font-size: 1rem; }
-.card-item p { color: var(--text-dim); font-size: 0.85rem; }
-.btn-sm { padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-size: 0.8rem; margin-left: 8px; }
+.card-item h4 { color: #fff; margin: 0; font-size: 1.1rem; }
+
+.lote-details-grid {
+    display: grid; grid-template-columns: 1fr; gap: 6px; font-size: 0.9rem; color: var(--text-dim);
+    background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px;
+}
+.lote-details-grid strong { color: var(--text); }
+
+.lote-actions { display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--glass-border); padding-top: 15px; }
+
+.btn-sm { padding: 8px 14px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
 .btn-edit { background: rgba(52, 152, 219, 0.2); color: #3498db; }
 .btn-del { background: rgba(231, 76, 60, 0.2); color: var(--danger); }
+
+/* Botão Ativo/Inativo */
+.btn-status {
+    padding: 4px 12px; border-radius: 20px; border: none; font-weight: 700; font-size: 0.75rem; cursor: pointer; transition: 0.2s;
+}
+.status-active { background: rgba(46, 204, 113, 0.2); color: var(--success); }
+.status-inactive { background: rgba(255, 255, 255, 0.1); color: var(--text-dim); }
 
 /* CHAT */
 .chat-container { height: 50vh; overflow-y: auto; padding-bottom: 10px; display: flex; flex-direction: column; gap: 12px; }
