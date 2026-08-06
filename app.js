@@ -1,11 +1,15 @@
 // ==========================================
+// LIMPEZA DE BUGS ANTIGOS (Apague ou comente a linha abaixo após abrir o app uma vez)
+// ==========================================
+localStorage.clear(); 
+
+
+// ==========================================
 // 1. REGISTRO DO SERVICE WORKER (PWA)
 // ==========================================
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(() => console.log('PWA Pronta!'))
-            .catch(() => {});
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
     });
 }
 
@@ -23,7 +27,6 @@ function desbloquearAudio() {
     }
 }
 
-// Libera o áudio no primeiro clique da tela
 document.addEventListener('click', function desbloqueio() {
     desbloquearAudio();
     document.removeEventListener('click', desbloqueio);
@@ -67,9 +70,7 @@ function playSound(type) {
             osc.start(ctx.currentTime);
             osc.stop(ctx.currentTime + 1.0);
         }
-    } catch (e) {
-        // Silencioso se falhar
-    }
+    } catch (e) {}
 }
 
 // ==========================================
@@ -95,42 +96,14 @@ const defaultSteps = [
     { text: 'Eclosão', desc: 'Não abra a incubadora! Aguarde os pintinhos secarem.', done: false }
 ];
 
-let species = [];
+let species = defaultSpecies;
 let lotes = [];
-let steps = [];
-
-// Carrega dados com segurança
-try {
-    const savedSpecies = JSON.parse(localStorage.getItem('ib_species'));
-    if (!Array.isArray(savedSpecies) || !savedSpecies.find(s => s.nome === 'Pavão')) {
-        species = defaultSpecies;
-        localStorage.setItem('ib_species', JSON.stringify(species));
-    } else {
-        species = savedSpecies;
-    }
-} catch(e) {
-    species = defaultSpecies;
-    localStorage.setItem('ib_species', JSON.stringify(species));
-}
-
-try {
-    lotes = JSON.parse(localStorage.getItem('ib_lotes')) || [];
-} catch(e) {
-    lotes = [];
-}
-
-try {
-    steps = JSON.parse(localStorage.getItem('ib_steps')) || defaultSteps;
-} catch(e) {
-    steps = defaultSteps;
-}
+let steps = defaultSteps;
 
 function saveData() {
-    try {
-        localStorage.setItem('ib_species', JSON.stringify(species));
-        localStorage.setItem('ib_lotes', JSON.stringify(lotes));
-        localStorage.setItem('ib_steps', JSON.stringify(steps));
-    } catch(e) {}
+    localStorage.setItem('ib_species', JSON.stringify(species));
+    localStorage.setItem('ib_lotes', JSON.stringify(lotes));
+    localStorage.setItem('ib_steps', JSON.stringify(steps));
 }
 
 // ==========================================
@@ -145,7 +118,6 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
         const viewEl = document.getElementById('view-' + btn.dataset.view);
         if (viewEl) viewEl.classList.add('active');
         
-        // Atualiza a agenda ao abrir a aba
         if (btn.dataset.view === 'calendario') {
             renderCalendar();
         }
@@ -173,6 +145,7 @@ document.getElementById('btn-add-lote').addEventListener('click', () => {
     document.getElementById('edit-lote-id').value = '';
     document.getElementById('lote-nome').value = '';
     document.getElementById('lote-qtd').value = '';
+    // Pega a data REAL de hoje sem travar
     document.getElementById('lote-data').valueAsDate = new Date();
     document.getElementById('btn-save-lote').innerText = 'Criar Lote';
     populateSpeciesSelect();
@@ -363,7 +336,7 @@ window.deleteLote = function(id) {
 };
 
 // ==========================================
-// 8. DASHBOARD (FUSO HORÁRIO CORRIGIDO)
+// 8. DASHBOARD (DATA REAL)
 // ==========================================
 function updateDashboard() {
     const ativo = lotes.find(l => l.ativo);
@@ -383,15 +356,16 @@ function updateDashboard() {
     document.getElementById('dash-temp').innerText = sp ? sp.temp : '--';
     document.getElementById('dash-humid').innerText = sp ? sp.umid + '%' : '--%';
 
-    // Força meio-dia para evitar bugs de fuso horário
-    const inicio = new Date(ativo.dataInicio + 'T12:00:00');
-    const agora = new Date();
-    const diasTotal = sp ? sp.dias : 21;
+    // Calcula usando a data real do sistema de forma segura
+    const partes = ativo.dataInicio.split('-');
+    const inicioDate = new Date(partes[0], partes[1] - 1, partes[2]);
+    const hoje = new Date();
+    hoje.setHours(0,0,0,0);
+    inicioDate.setHours(0,0,0,0);
     
-    // Calcula diferença de dias exatos (meia-noite a meia-noite)
-    const inicioMs = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate()).getTime();
-    const agoraMs = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate()).getTime();
-    const diaAtual = Math.floor((agoraMs - inicioMs) / (1000 * 60 * 60 * 24));
+    const diasTotal = sp ? sp.dias : 21;
+    const diferencaMs = hoje.getTime() - inicioDate.getTime();
+    const diaAtual = Math.floor(diferencaMs / (1000 * 60 * 60 * 24));
     
     const diasFaltantes = Math.max(0, diasTotal - diaAtual);
     
@@ -428,7 +402,7 @@ window.toggleStep = function(i) {
 };
 
 // ==========================================
-// 10. AGENDA (FUNCIONAL)
+// 10. AGENDA
 // ==========================================
 function renderCalendar() {
     const container = document.getElementById('calendar-events');
@@ -443,18 +417,22 @@ function renderCalendar() {
     const sp = species.find(s => s.id === ativo.especieId);
     if (!sp) return;
 
-    const inicio = new Date(ativo.dataInicio + 'T12:00:00');
+    const partes = ativo.dataInicio.split('-');
+    const inicio = new Date(partes[0], partes[1] - 1, partes[2]);
+    const umDia = 24 * 60 * 60 * 1000;
+    
     const eventos = [
-        { titulo: 'Início da Incubação', data: inicio, cor: 'var(--accent)' },
-        { titulo: 'Ovoscopia (Dia 7)', data: new Date(inicio.getTime() + 7 * 24 * 60 * 60 * 1000), cor: '#3498db' },
-        { titulo: 'Ovoscopia (Dia 14)', data: new Date(inicio.getTime() + 14 * 24 * 60 * 60 * 1000), cor: '#3498db' },
-        { titulo: 'Parar Viragens (3 dias antes)', data: new Date(inicio.getTime() + (sp.dias - 3) * 24 * 60 * 60 * 1000), cor: '#e67e22' },
-        { titulo: 'Previsão de Eclosão', data: new Date(inicio.getTime() + sp.dias * 24 * 60 * 60 * 1000), cor: 'var(--success)' }
+        { titulo: 'Início da Incubação', dias: 0, cor: 'var(--accent)' },
+        { titulo: 'Ovoscopia (Dia 7)', dias: 7, cor: '#3498db' },
+        { titulo: 'Ovoscopia (Dia 14)', dias: 14, cor: '#3498db' },
+        { titulo: 'Parar Viragens (3 dias antes)', dias: sp.dias - 3, cor: '#e67e22' },
+        { titulo: 'Previsão de Eclosão', dias: sp.dias, cor: 'var(--success)' }
     ];
 
     container.innerHTML = eventos.map(ev => {
-        const dataFormatada = ev.data.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
-        const isPast = ev.data.getTime() < new Date().setHours(0,0,0,0);
+        const dataEv = new Date(inicio.getTime() + (ev.dias * umDia));
+        const dataFormatada = dataEv.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+        const isPast = dataEv.getTime() < new Date().setHours(0,0,0,0);
         
         return `
         <div class="card-item" style="border-left: 4px solid ${ev.cor}; opacity: ${isPast ? 0.5 : 1};">
@@ -470,7 +448,7 @@ function renderCalendar() {
 // 11. BOTÕES LIGAR/DESLIGAR
 // ==========================================
 let alarmInterval = null;
-let alarmSeconds = 7200; // 2 horas
+let alarmSeconds = 7200;
 
 const btnAlarm = document.getElementById('btn-alarm');
 const alarmText = document.getElementById('alarm-timer-text');
@@ -486,9 +464,7 @@ function formatTime(totalSeconds) {
 
 btnAlarm.addEventListener('click', () => {
     desbloquearAudio();
-    
     if (alarmInterval) {
-        // DESLIGAR
         clearInterval(alarmInterval);
         alarmInterval = null;
         alarmSeconds = 7200;
@@ -496,15 +472,12 @@ btnAlarm.addEventListener('click', () => {
         btnAlarm.classList.remove('active');
         alarmText.innerText = 'Toque para iniciar (02:00h)';
     } else {
-        // LIGAR
         alarmSeconds = 7200;
         btnAlarm.innerText = 'ZERAR';
         btnAlarm.classList.add('active');
-        
         alarmInterval = setInterval(() => {
             alarmSeconds--;
             alarmText.innerText = 'Virando em: ' + formatTime(alarmSeconds);
-            
             if (alarmSeconds <= 0) {
                 playSound('alarm');
                 clearInterval(alarmInterval);
@@ -518,10 +491,8 @@ btnAlarm.addEventListener('click', () => {
     }
 });
 
-// Viragem Automática (Apenas Liga/Desliga)
 btnAutoTurn.addEventListener('click', () => {
     desbloquearAudio();
-    
     if (btnAutoTurn.classList.contains('active')) {
         btnAutoTurn.innerText = 'LIGAR';
         btnAutoTurn.classList.remove('active');
@@ -534,7 +505,7 @@ btnAutoTurn.addEventListener('click', () => {
 });
 
 // ==========================================
-// 12. CHAT IA
+// 12. CHAT IA (LEITURA PERFEITA)
 // ==========================================
 const chatContainer = document.getElementById('chat-messages');
 
@@ -567,39 +538,26 @@ function addMessage(text, type) {
 
 function getAppContext() {
     const ativo = lotes.find(l => l.ativo);
-    if (!ativo) return "AVISO: O usuário NÃO possui nenhum lote ativo no momento.";
+    if (!ativo) return "AVISO: O usuário NÃO possui nenhum lote ativo no aplicativo.";
     
     const sp = species.find(s => s.id === ativo.especieId);
-    const inicio = new Date(ativo.dataInicio + 'T12:00:00');
-    const diasTotal = sp ? sp.dias : 21;
+    const partes = ativo.dataInicio.split('-');
+    const inicioDate = new Date(partes[0], partes[1] - 1, partes[2]);
+    const hoje = new Date(); hoje.setHours(0,0,0,0); inicioDate.setHours(0,0,0,0);
+    const diaAtual = Math.floor((hoje.getTime() - inicioDate.getTime()) / (1000 * 60 * 60 * 24));
+    const diasFaltantes = Math.max(0, (sp ? sp.dias : 21) - diaAtual);
     
-    const inicioMs = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate()).getTime();
-    const agoraMs = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()).getTime();
-    const diaAtual = Math.floor((agoraMs - inicioMs) / (1000 * 60 * 60 * 24));
-    const diasFaltantes = Math.max(0, diasTotal - diaAtual);
+    let c = 'DADOS_DO_APP:\n';
+    c += 'Lote: ' + ativo.nome + '\n';
+    c += 'Especie: ' + (sp ? sp.nome : '?') + '\n';
+    c += 'Quantidade de Ovos: ' + ativo.qtd + '\n';
+    c += 'Temperatura Alvo: ' + (sp ? sp.temp + '°C' : '?') + '\n';
+    c += 'Umidade Alvo: ' + (sp ? sp.umid + '%' : '?') + '\n';
+    c += 'Dia Atual: ' + diaAtual + '\n';
+    c += 'Dias Restantes: ' + diasFaltantes + '\n';
+    c += 'FIM_DADOS.';
     
-    let contexto = 'CONTEXTO ATUAL DO APP:\n';
-    contexto += '- Lote: "' + ativo.nome + '"\n';
-    contexto += '- Espécie: ' + (sp ? sp.nome : '?') + '\n';
-    contexto += '- Ovos: ' + ativo.qtd + '\n';
-    contexto += '- Início: ' + inicio.toLocaleDateString('pt-BR') + '\n';
-    
-    if (diaAtual < 0) {
-        contexto += '- Status: Ainda não iniciou.\n';
-    } else {
-        contexto += '- Dia atual: ' + diaAtual + '\n';
-        contexto += '- Dias restantes: ' + diasFaltantes + '\n';
-    }
-    
-    if (sp) {
-        contexto += '- Temp alvo: ' + sp.temp + '°C | Umid alvo: ' + sp.umid + '%\n';
-    }
-    
-    if (diasFaltantes <= 3 && diaAtual >= 0) {
-        contexto += '!!! ATENÇÃO: Estamos nos últimos 3 dias. Viragem deve estar parada.';
-    }
-    
-    return contexto;
+    return c;
 }
 
 async function handleChat(msg) {
@@ -630,12 +588,12 @@ async function handleChat(msg) {
                 messages: [
                     { 
                         role: 'system', 
-                        content: 'Você é um especialista em incubação. Responda em pt-BR. REGRA: Use o CONTEXTO DO APP abaixo. Se não há lote ativo, diga isso claramente. Nunca invente dados.\n\n' + contextData
+                        content: 'Você é um assistente de incubação. REGRAS ESTRITAS: 1. Leia os DADOS_DO_APP. 2. NUNCA invente números. 3. Use EXATAMENTE os valores de temperatura, umidade e ovos que estão em DADOS_DO_APP. 4. Responda em português do Brasil.\n\n' + contextData
                     },
                     { role: 'user', content: msg }
                 ],
-                temperature: 0.7,
-                max_tokens: 1024
+                temperature: 0.1,
+                max_tokens: 300
             })
         });
 
@@ -647,11 +605,11 @@ async function handleChat(msg) {
         } else if (data.choices && data.choices[0]) {
             addMessage(data.choices[0].message.content, 'bot');
         } else {
-            addMessage('A IA não retornou resposta.', 'bot');
+            addMessage('Sem resposta.', 'bot');
         }
     } catch (error) {
         playSound('receive');
-        addMessage('Erro de conexão. Verifique sua internet.', 'bot');
+        addMessage('Erro de conexão.', 'bot');
     }
 }
 
