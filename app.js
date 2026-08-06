@@ -46,7 +46,7 @@ function playSound(type) {
 }
 
 // ==========================================
-// 3. DADOS E ESTADO DO APP (Lista Exata)
+// 3. DADOS E ESTADO DO APP
 // ==========================================
 const defaultSpecies = [
     { id: 1, nome: 'Galinha', dias: 21, temp: 37.5, umid: 60 },
@@ -72,12 +72,10 @@ let species = [];
 let lotes = [];
 let steps = [];
 
-// Se o usuário já tinha a lista antiga, força atualizar para esta nova lista correta
 try { 
     const savedSpecies = JSON.parse(localStorage.getItem('ib_species'));
-    // Verifica se a lista salva é diferente da nova. Se for, atualiza.
-    if (!Array.isArray(savedSpecies) || savedSpecies.length !== defaultSpecies.length || savedSpecies[0].nome !== 'Galinha' || !savedSpecies.find(s => s.nome === 'Pavão')) {
-        species = defaultSpecies; // Força a lista nova se tiver faltando alguma ave
+    if (!Array.isArray(savedSpecies) || savedSpecies.length !== defaultSpecies.length || !savedSpecies.find(s => s.nome === 'Pavão')) {
+        species = defaultSpecies; 
         localStorage.setItem('ib_species', JSON.stringify(species));
     } else {
         species = savedSpecies;
@@ -339,7 +337,7 @@ window.toggleStep = function(i) {
 };
 
 // ==========================================
-// 10. CHAT IA
+// 10. CHAT IA (COM LEITURA DO CONTEXTO DO APP)
 // ==========================================
 const chatContainer = document.getElementById('chat-messages');
 
@@ -370,6 +368,43 @@ function addMessage(text, type) {
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
+// NOVA FUNÇÃO: Coleta o contexto atual do app para mandar pra IA
+function getAppContext() {
+    const ativo = lotes.find(l => l.ativo);
+    if (!ativo) {
+        return "O usuário não possui nenhum lote de incubação ativo no momento.";
+    }
+
+    const sp = species.find(s => s.id === ativo.especieId);
+    const inicio = new Date(ativo.dataInicio + 'T00:00:00');
+    const diasTotal = sp ? sp.dias : 0;
+    const diaAtual = Math.floor((Date.now() - inicio.getTime()) / (1000 * 60 * 60 * 24));
+    const diasFaltantes = Math.max(0, diasTotal - diaAtual);
+
+    let contexto = `CONTEXTO ATUAL DO APP DO USUÁRIO:\n`;
+    contexto += `- Lote Ativo: "${ativo.nome}"\n`;
+    contexto += `- Espécie: ${sp ? sp.nome : 'Não identificada'}\n`;
+    contexto += `- Total de Ovos: ${ativo.qtd}\n`;
+    contexto += `- Data de Início: ${new Date(inicio).toLocaleDateString('pt-BR')}\n`;
+    contexto += `- Dia atual de incubação: ${diaAtual}\n`;
+    contexto += `- Dias totais da espécie: ${diasTotal}\n`;
+    contexto += `- Dias restantes para eclosão: ${diasFaltantes}\n`;
+    
+    if (sp) {
+        contexto += `- Temperatura alvo configurada: ${sp.temp}°C\n`;
+        contexto += `- Umidade alvo configurada: ${sp.umid}%\n`;
+    }
+
+    // Verifica se está perto dos últimos 3 dias
+    if (diasFaltantes <= 3 && diasFaltantes > 0) {
+        contexto += `\n!!! ATENÇÃO: O lote está nos últimos 3 dias antes da eclosão. A viragem já deve ter sido parada.`;
+    } else if (diasFaltantes === 0) {
+        contexto += `\n!!! ATENÇÃO: É o dia da eclosão! A incubadora não deve ser aberta.`;
+    }
+
+    return contexto;
+}
+
 async function handleChat(msg) {
     playSound('send');
     addMessage(msg, 'user');
@@ -385,6 +420,9 @@ async function handleChat(msg) {
     }
 
     try {
+        // Pega o contexto real do aplicativo
+        const contextData = getAppContext();
+
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: { 
@@ -394,7 +432,17 @@ async function handleChat(msg) {
             body: JSON.stringify({
                 model: 'llama-3.1-8b-instant',
                 messages: [
-                    { role: 'system', content: 'Você é um especialista mundial em incubação de ovos de aves. Responda de forma clara, objetiva e amigável em português do Brasil.' },
+                    { 
+                        role: 'system', 
+                        content: `Você é um especialista mundial em incubação de ovos de aves. Responda de forma clara, objetiva e amigável em português do Brasil. 
+                        
+                        IMPORTANTE: Leia atentamente o contexto do aplicativo fornecido abaixo. Use essas informações para responder às perguntas do usuário de forma personalizada (ex: se ele perguntar sobre o lote, use os nomes, quantidades e dias exatos que estão no contexto). 
+                        
+                        Se o contexto disser que não há lote ativo, responda informando isso.
+                        
+                        CONTEXTO DO APP:
+                        ${contextData}`
+                    },
                     { role: 'user', content: msg }
                 ],
                 temperature: 0.7,
