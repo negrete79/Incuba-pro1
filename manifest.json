@@ -1,29 +1,17 @@
 {
   "name": "IncubaPro - Controle de Incubação",
   "short_name": "IncubaPro",
-  "description": "Controle profissional de incubação de ovos",
+  "description": "Controle profissional de incubação de ovos offline.",
   "start_url": "./index.html",
-  "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADbSURBVFhH7ZY9DoMwDIUDC+fgCByAA3BRHQSXQER0El0BF9Eo9YlOaSnJN0/s/aJPmyNJkmSR4RPMiOMi5xV2kYRMWcZksniE0kEmM0mM0m80m80ms9nsYjKZTCKTyWSSYjKZjMRiMplMJCgP0oBNzDZqoBHoBSqBk+gFDiBXkAKnEEqoQx6AUOgV9ACpxBKqEMegFDIFfQAqcQSqhDHoBS6AX0AKnEEqoQx6AUugF9ACpxBKqEMegFPojmdrZW0yP8RERF0ohFpbmyMRCIR6eCAiCgRqSjFf+Q3AFY9SV1b2WWSAAAAAElFTkSuQmCC",
-      "sizes": "32x32",
-      "type": "image/png"
-    },
-    {
-      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADbSURBVFhH7ZY9DoMwDIUDC+fgCByAA3BRHQSXQER0El0BF9Eo9YlOaSnJN0/s/aJPmyNJkmSR4RPMiOMi5xV2kYRMWcZksniE0kEmM0mM0m80m80ms9nsYjKZTCKTyWSSYjKZjMRiMplMJCgP0oBNzDZqoBHoBSqBk+gFDiBXkAKnEEqoQx6AUOgV9ACpxBKqEMegFDIFfQAqcQSqhDHoBS6AX0AKnEEqoQx6AUugF9ACpxBKqEMegFPojmdrZW0yP8RERF0ohFpbmyMRCIR6eCAiCgRqSjFf+Q3AFY9SV1b2WWSAAAAAElFTkSuQmCC",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADbSURBVFhH7ZY9DoMwDIUDC+fgCByAA3BRHQSXQER0El0BF9Eo9YlOaSnJN0/s/aJPmyNJkmSR4RPMiOMi5xV2kYRMWcZksniE0kEmM0mM0m80m80ms9nsYjKZTCKTyWSSYjKZjMRiMplMJCgP0oBNzDZqoBHoBSqBk+gFDiBXkAKnEEqoQx6AUOgV9ACpxBKqEMegFDIFfQAqcQSqhDHoBS6AX0AKnEEqoQx6AUugF9ACpxBKqEMegFPojmdrZW0yP8RERF0ohFpbmyMRCIR6eCAiCgRqSjFf+Q3AFY9SV1b2WWSAAAAAElFTkSuQmCC",
-      "sizes": "512x512",
-      "type": "image/png",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230a0a0a'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='%2300ff88'>🥚</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ]
