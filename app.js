@@ -1,3 +1,12 @@
+// ========== INICIALIZAÇÃO OFFLINE (SERVICE WORKER) ==========
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('Service Worker registrado. App funcionará offline!'))
+      .catch(err => console.log('Falha ao registrar SW:', err));
+  });
+}
+// =============================================================
 // LIMPEZA ÚNICA (Apague esta linha após abrir o app uma vez e cadastrar seu lote)
 localStorage.clear(); 
 
