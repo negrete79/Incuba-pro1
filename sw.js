@@ -1,64 +1,23 @@
 const CACHE_NAME = 'incubapro-v1';
-const URLS_TO_CACHE = [
-  './',
-  './index.html',
-  './style.css',
-  './app.js',
-  './manifest.json'
-];
+const URLS = ['./', './index.html', './style.css', './app.js', './manifest.json'];
 
-// Instala o Service Worker e guarda os arquivos no cache
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Abrindo cache e salvando arquivos offline');
-        return cache.addAll(URLS_TO_CACHE);
-      })
-      .catch(err => console.log('Erro ao cachear:', err))
-  );
-  self.skipWaiting(); // Ativa imediatamente
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(URLS)));
+  self.skipWaiting();
 });
 
-// Intercepta as requisições de rede. Se não tiver internet, usa o cache.
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Se achou no cache, retorna. Se não, busca na internet.
-        return response || fetch(event.request).then((networkResponse) => {
-          // Se for uma requisição GET, salva a nova versão no cache
-          if(event.request.method === 'GET') {
-            return caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, networkResponse.clone());
-              return networkResponse;
-            });
-          }
-          return networkResponse;
-        });
-      })
-      .catch(() => {
-        // Se cair aqui, está sem internet e o arquivo não está no cache
-        if (event.request.destination === 'document') {
-          return caches.match('./index.html'); // Garante que a página carregue
-        }
-      })
+self.addEventListener('fetch', e => {
+  e.respondWith(
+    caches.match(e.request).then(r => r || fetch(e.request).then(res => {
+      if(e.request.method === 'GET') {
+        return caches.open(CACHE_NAME).then(c => { c.put(e.request, res.clone()); return res; });
+      }
+      return res;
+    }).catch(() => e.request.destination === 'document' ? caches.match('./index.html') : null))
   );
 });
 
-// Limpa caches antigos quando o sw.js é atualizado
-self.addEventListener('activate', (event) => {
-  const cacheWhitelist = [CACHE_NAME];
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (!cacheWhitelist.includes(cacheName)) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-  self.clients.claim(); // Assume o controle da aba imediatamente
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(k => Promise.all(k.filter(n => n !== CACHE_NAME).map(n => caches.delete(n)))));
+  self.clients.claim();
 });
