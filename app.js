@@ -4,8 +4,8 @@
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-            .then((reg) => console.log('✅ PWA Pronta!'))
-            .catch((err) => console.warn('SW Falhou:', err));
+            .then(() => console.log('PWA Pronta!'))
+            .catch(() => {});
     });
 }
 
@@ -13,34 +13,63 @@ if ('serviceWorker' in navigator) {
 // 2. SONS DO CHAT
 // ==========================================
 let audioCtx;
+
 function desbloquearAudio() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
 }
-document.addEventListener('click', function desbloqueio() { desbloquearAudio(); document.removeEventListener('click', desbloqueio); }, { once: true });
+
+// Libera o áudio no primeiro clique da tela
+document.addEventListener('click', function desbloqueio() {
+    desbloquearAudio();
+    document.removeEventListener('click', desbloqueio);
+}, { once: true });
 
 function playSound(type) {
     try {
         if (!audioCtx) desbloquearAudio();
-        const ctx = audioCtx; if (ctx.state === 'suspended') ctx.resume();
-        const osc = ctx.createOscillator(); const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination); osc.type = 'sine';
+        const ctx = audioCtx;
+        if (ctx.state === 'suspended') ctx.resume();
+        
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        
         if (type === 'send') {
-            osc.frequency.setValueAtTime(800, ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
-            gain.gain.setValueAtTime(0.1, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-            osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.1);
+            osc.frequency.setValueAtTime(800, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.1);
         } else if (type === 'receive') {
-            osc.frequency.setValueAtTime(600, ctx.currentTime); osc.frequency.setValueAtTime(900, ctx.currentTime + 0.1);
-            gain.gain.setValueAtTime(0.08, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-            osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.2);
+            osc.frequency.setValueAtTime(600, ctx.currentTime);
+            osc.frequency.setValueAtTime(900, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.08, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.2);
         } else if (type === 'alarm') {
-            osc.type = 'square'; osc.frequency.setValueAtTime(880, ctx.currentTime); osc.frequency.setValueAtTime(0, ctx.currentTime + 0.2);
-            osc.frequency.setValueAtTime(880, ctx.currentTime + 0.4); osc.frequency.setValueAtTime(0, ctx.currentTime + 0.6);
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(880, ctx.currentTime);
+            osc.frequency.setValueAtTime(0, ctx.currentTime + 0.2);
+            osc.frequency.setValueAtTime(880, ctx.currentTime + 0.4);
+            osc.frequency.setValueAtTime(0, ctx.currentTime + 0.6);
             osc.frequency.setValueAtTime(880, ctx.currentTime + 0.8);
-            gain.gain.setValueAtTime(0.2, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.0);
-            osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 1.0);
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.0);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 1.0);
         }
-    } catch (e) {}
+    } catch (e) {
+        // Silencioso se falhar
+    }
 }
 
 // ==========================================
@@ -56,6 +85,7 @@ const defaultSpecies = [
     { id: 7, nome: 'Ganso', dias: 30, temp: 37.5, umid: 70 },
     { id: 8, nome: 'Cisne', dias: 35, temp: 37.2, umid: 65 }
 ];
+
 const defaultSteps = [
     { text: 'Aquecer a incubadora', desc: 'Ligue 24h antes para estabilizar a temperatura.', done: false },
     { text: 'Colocar os ovos', desc: 'Posicione com a ponta mais fina para baixo.', done: false },
@@ -65,12 +95,43 @@ const defaultSteps = [
     { text: 'Eclosão', desc: 'Não abra a incubadora! Aguarde os pintinhos secarem.', done: false }
 ];
 
-let species = [], lotes = [], steps = [];
-try { const s = JSON.parse(localStorage.getItem('ib_species')); if (!Array.isArray(s) || !s.find(x => x.nome === 'Pavão')) { species = defaultSpecies; localStorage.setItem('ib_species', JSON.stringify(species)); } else species = s; } catch(e) { species = defaultSpecies; localStorage.setItem('ib_species', JSON.stringify(species)); }
-try { lotes = JSON.parse(localStorage.getItem('ib_lotes')) || []; } catch(e) { lotes = []; }
-try { steps = JSON.parse(localStorage.getItem('ib_steps')) || defaultSteps; } catch(e) { steps = defaultSteps; }
+let species = [];
+let lotes = [];
+let steps = [];
 
-function saveData() { try { localStorage.setItem('ib_species', JSON.stringify(species)); localStorage.setItem('ib_lotes', JSON.stringify(lotes)); localStorage.setItem('ib_steps', JSON.stringify(steps)); } catch(e) {} }
+// Carrega dados com segurança
+try {
+    const savedSpecies = JSON.parse(localStorage.getItem('ib_species'));
+    if (!Array.isArray(savedSpecies) || !savedSpecies.find(s => s.nome === 'Pavão')) {
+        species = defaultSpecies;
+        localStorage.setItem('ib_species', JSON.stringify(species));
+    } else {
+        species = savedSpecies;
+    }
+} catch(e) {
+    species = defaultSpecies;
+    localStorage.setItem('ib_species', JSON.stringify(species));
+}
+
+try {
+    lotes = JSON.parse(localStorage.getItem('ib_lotes')) || [];
+} catch(e) {
+    lotes = [];
+}
+
+try {
+    steps = JSON.parse(localStorage.getItem('ib_steps')) || defaultSteps;
+} catch(e) {
+    steps = defaultSteps;
+}
+
+function saveData() {
+    try {
+        localStorage.setItem('ib_species', JSON.stringify(species));
+        localStorage.setItem('ib_lotes', JSON.stringify(lotes));
+        localStorage.setItem('ib_steps', JSON.stringify(steps));
+    } catch(e) {}
+}
 
 // ==========================================
 // 4. NAVEGAÇÃO
@@ -80,112 +141,304 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         btn.classList.add('active');
-        const v = document.getElementById(`view-${btn.dataset.view}`); if(v) v.classList.add('active');
-        if(btn.dataset.view === 'calendario') renderCalendar(); // Atualiza a agenda ao abrir
+        
+        const viewEl = document.getElementById('view-' + btn.dataset.view);
+        if (viewEl) viewEl.classList.add('active');
+        
+        // Atualiza a agenda ao abrir a aba
+        if (btn.dataset.view === 'calendario') {
+            renderCalendar();
+        }
     });
 });
 
 // ==========================================
 // 5. MODAIS
 // ==========================================
-function openModal(id) { const m = document.getElementById(id); if(m) m.classList.add('show'); }
-function closeModal(id) { const m = document.getElementById(id); if(m) m.classList.remove('show'); }
+function openModal(id) {
+    const m = document.getElementById(id);
+    if (m) m.classList.add('show');
+}
+
+function closeModal(id) {
+    const m = document.getElementById(id);
+    if (m) m.classList.remove('show');
+}
+
 document.getElementById('btn-settings').addEventListener('click', () => openModal('modal-settings'));
 document.getElementById('close-settings').addEventListener('click', () => closeModal('modal-settings'));
+
 document.getElementById('btn-add-lote').addEventListener('click', () => {
     document.getElementById('lote-modal-title').innerText = 'Novo Lote';
-    document.getElementById('edit-lote-id').value = ''; document.getElementById('lote-nome').value = '';
-    document.getElementById('lote-qtd').value = ''; document.getElementById('lote-data').valueAsDate = new Date();
-    document.getElementById('btn-save-lote').innerText = 'Criar Lote'; populateSpeciesSelect(); openModal('modal-lote');
+    document.getElementById('edit-lote-id').value = '';
+    document.getElementById('lote-nome').value = '';
+    document.getElementById('lote-qtd').value = '';
+    document.getElementById('lote-data').valueAsDate = new Date();
+    document.getElementById('btn-save-lote').innerText = 'Criar Lote';
+    populateSpeciesSelect();
+    openModal('modal-lote');
 });
+
 document.getElementById('close-lote').addEventListener('click', () => closeModal('modal-lote'));
+
 document.getElementById('btn-add-species').addEventListener('click', () => {
-    document.getElementById('species-modal-title').innerText = 'Nova Espécie'; document.getElementById('edit-species-id').value = '';
-    document.getElementById('sp-nome').value = ''; document.getElementById('sp-dias').value = '';
-    document.getElementById('sp-temp').value = ''; document.getElementById('sp-humid').value = ''; openModal('modal-species');
+    document.getElementById('species-modal-title').innerText = 'Nova Espécie';
+    document.getElementById('edit-species-id').value = '';
+    document.getElementById('sp-nome').value = '';
+    document.getElementById('sp-dias').value = '';
+    document.getElementById('sp-temp').value = '';
+    document.getElementById('sp-humid').value = '';
+    openModal('modal-species');
 });
+
 document.getElementById('close-species').addEventListener('click', () => closeModal('modal-species'));
-window.addEventListener('click', (e) => { if (e.target.classList.contains('modal')) e.target.classList.remove('show'); });
+
+window.addEventListener('click', (e) => {
+    if (e.target.classList.contains('modal')) {
+        e.target.classList.remove('show');
+    }
+});
 
 // ==========================================
 // 6. CRUD ESPÉCIES
 // ==========================================
 function renderSpeciesTable() {
-    const t = document.getElementById('especies-tbody'); if(!t) return;
-    t.innerHTML = species.map(sp => `<tr><td>${sp.nome}</td><td>${sp.dias}d</td><td>${sp.temp}°C</td><td>${sp.umid}%</td><td><button class="btn-sm btn-del" onclick="deleteSpecies(${sp.id})">Excluir</button></td></tr>`).join('');
+    const tbody = document.getElementById('especies-tbody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = species.map(sp => `
+        <tr>
+            <td>${sp.nome}</td>
+            <td>${sp.dias}d</td>
+            <td>${sp.temp}°C</td>
+            <td>${sp.umid}%</td>
+            <td><button class="btn-sm btn-del" onclick="deleteSpecies(${sp.id})">Excluir</button></td>
+        </tr>
+    `).join('');
 }
+
 document.getElementById('btn-save-species').addEventListener('click', () => {
-    const n = document.getElementById('sp-nome').value.trim(), d = parseInt(document.getElementById('sp-dias').value), t = parseFloat(document.getElementById('sp-temp').value), u = parseInt(document.getElementById('sp-humid').value);
-    if (!n || !d || !t) return alert('Preencha tudo.'); species.push({ id: Date.now(), nome: n, dias: d, temp: t, umid: u }); saveData(); renderSpeciesTable(); closeModal('modal-species');
+    const nome = document.getElementById('sp-nome').value.trim();
+    const dias = parseInt(document.getElementById('sp-dias').value);
+    const temp = parseFloat(document.getElementById('sp-temp').value);
+    const umid = parseInt(document.getElementById('sp-humid').value);
+    
+    if (!nome || !dias || !temp) return alert('Preencha Nome, Dias e Temperatura.');
+    
+    species.push({ id: Date.now(), nome, dias, temp, umid });
+    saveData();
+    renderSpeciesTable();
+    closeModal('modal-species');
 });
-window.deleteSpecies = function(id) { if (confirm('Excluir?')) { species = species.filter(s => s.id !== id); saveData(); renderSpeciesTable(); } };
+
+window.deleteSpecies = function(id) {
+    if (confirm('Excluir esta espécie?')) {
+        species = species.filter(s => s.id !== id);
+        saveData();
+        renderSpeciesTable();
+    }
+};
 
 // ==========================================
 // 7. CRUD LOTES
 // ==========================================
-function populateSpeciesSelect() { const s = document.getElementById('lote-especie'); if(!s) return; s.innerHTML = '<option value="">Selecione...</option>' + species.map(sp => `<option value="${sp.id}">${sp.nome}</option>`).join ''; }
+function populateSpeciesSelect() {
+    const select = document.getElementById('lote-especie');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">Selecione...</option>' + 
+        species.map(sp => '<option value="' + sp.id + '">' + sp.nome + '</option>').join('');
+}
 
 document.getElementById('btn-save-lote').addEventListener('click', () => {
-    const eid = document.getElementById('edit-lote-id').value, n = document.getElementById('lote-nome').value.trim(), eid2 = document.getElementById('lote-especie').value, q = parseInt(document.getElementById('lote-qtd').value) || 0, dt = document.getElementById('lote-data').value;
-    if (!n || !eid2 || !dt) return alert('Preencha Nome, Espécie e Data.');
-    if (eid) { const l = lotes.find(x => x.id == eid); if (l) { l.nome = n; l.especieId = parseInt(eid2); l.qtd = q; l.dataInicio = dt; } } 
-    else { lotes.forEach(l => l.ativo = false); lotes.push({ id: Date.now(), nome: n, especieId: parseInt(eid2), qtd, dataInicio: dt, ativo: true }); }
-    saveData(); renderLotes(); updateDashboard(); closeModal('modal-lote');
+    const editId = document.getElementById('edit-lote-id').value;
+    const nome = document.getElementById('lote-nome').value.trim();
+    const especieId = document.getElementById('lote-especie').value;
+    const qtd = parseInt(document.getElementById('lote-qtd').value) || 0;
+    const data = document.getElementById('lote-data').value;
+    
+    if (!nome || !especieId || !data) return alert('Preencha Nome, Espécie e Data.');
+
+    if (editId) {
+        const lote = lotes.find(l => l.id == editId);
+        if (lote) {
+            lote.nome = nome;
+            lote.especieId = parseInt(especieId);
+            lote.qtd = qtd;
+            lote.dataInicio = data;
+        }
+    } else {
+        lotes.forEach(l => l.ativo = false);
+        lotes.push({
+            id: Date.now(),
+            nome: nome,
+            especieId: parseInt(especieId),
+            qtd: qtd,
+            dataInicio: data,
+            ativo: true
+        });
+    }
+    
+    saveData();
+    renderLotes();
+    updateDashboard();
+    closeModal('modal-lote');
 });
 
 function renderLotes() {
-    const l = document.getElementById('lotes-list'); if(!l) return;
-    if (lotes.length === 0) { l.innerHTML = '<p style="text-align:center; color:var(--text-dim); padding:40px 0;">Nenhum lote cadastrado.</p>'; return; }
-    l.innerHTML = lotes.map(lt => {
-        const sp = species.find(s => s.id === lt.especieId), df = new Date(lt.dataInicio+'T12:00:00').toLocaleDateString('pt-BR'), sc = lt.ativo ? 'status-active' : 'status-inactive', st = lt.ativo ? 'Ativo' : 'Inativo';
-        return `<div class="card-item"><div style="flex: 1;"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;"><h4 style="margin: 0;">${lt.nome}</h4><button class="btn-status ${sc}" onclick="toggleLoteStatus(${lt.id})">${st}</button></div><div class="lote-details-grid"><span><strong>Espécie:</strong> ${sp ? sp.nome : 'Removida'}</span><span><strong>Ovos:</strong> ${lt.qtd} unid.</span><span><strong>Início:</strong> ${df}</span></div></div><div class="lote-actions"><button class="btn-sm btn-edit" onclick="editLote(${lt.id})">Editar</button><button class="btn-sm btn-del" onclick="deleteLote(${lt.id})">Excluir</button></div></div>`;
+    const list = document.getElementById('lotes-list');
+    if (!list) return;
+    
+    if (lotes.length === 0) {
+        list.innerHTML = '<p style="text-align:center; color:var(--text-dim); padding:40px 0;">Nenhum lote cadastrado.</p>';
+        return;
+    }
+    
+    list.innerHTML = lotes.map(l => {
+        const sp = species.find(s => s.id === l.especieId);
+        const dataFormatada = new Date(l.dataInicio + 'T12:00:00').toLocaleDateString('pt-BR');
+        const statusClass = l.ativo ? 'status-active' : 'status-inactive';
+        const statusText = l.ativo ? 'Ativo' : 'Inativo';
+        
+        return `
+        <div class="card-item">
+            <div style="flex: 1;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h4 style="margin: 0;">${l.nome}</h4>
+                    <button class="btn-status ${statusClass}" onclick="toggleLoteStatus(${l.id})">${statusText}</button>
+                </div>
+                <div class="lote-details-grid">
+                    <span><strong>Espécie:</strong> ${sp ? sp.nome : 'Removida'}</span>
+                    <span><strong>Ovos:</strong> ${l.qtd} unid.</span>
+                    <span><strong>Início:</strong> ${dataFormatada}</span>
+                </div>
+            </div>
+            <div class="lote-actions">
+                <button class="btn-sm btn-edit" onclick="editLote(${l.id})">Editar</button>
+                <button class="btn-sm btn-del" onclick="deleteLote(${l.id})">Excluir</button>
+            </div>
+        </div>`;
     }).join('');
 }
 
-window.toggleLoteStatus = function(id) { const lt = lotes.find(l => l.id === id); if (lt) { if (lt.ativo) lt.ativo = false; else { lotes.forEach(l => l.ativo = false); lt.ativo = true; } saveData(); renderLotes(); updateDashboard(); } };
-window.editLote = function(id) { const lt = lotes.find(l => l.id === id); if (!lt) return; document.getElementById('lote-modal-title').innerText = 'Editar Lote'; document.getElementById('edit-lote-id').value = lt.id; document.getElementById('lote-nome').value = lt.nome; document.getElementById('lote-qtd').value = lt.qtd; document.getElementById('lote-data').value = lt.dataInicio; document.getElementById('btn-save-lote').innerText = 'Salvar Alterações'; populateSpeciesSelect(); document.getElementById('lote-especie').value = lt.especieId; openModal('modal-lote'); };
-window.deleteLote = function(id) { if (confirm('Excluir lote?')) { lotes = lotes.filter(l => l.id !== id); saveData(); renderLotes(); updateDashboard(); } };
+window.toggleLoteStatus = function(id) {
+    const lote = lotes.find(l => l.id === id);
+    if (lote) {
+        if (lote.ativo) {
+            lote.ativo = false;
+        } else {
+            lotes.forEach(l => l.ativo = false);
+            lote.ativo = true;
+        }
+        saveData();
+        renderLotes();
+        updateDashboard();
+    }
+};
+
+window.editLote = function(id) {
+    const lote = lotes.find(l => l.id === id);
+    if (!lote) return;
+    
+    document.getElementById('lote-modal-title').innerText = 'Editar Lote';
+    document.getElementById('edit-lote-id').value = lote.id;
+    document.getElementById('lote-nome').value = lote.nome;
+    document.getElementById('lote-qtd').value = lote.qtd;
+    document.getElementById('lote-data').value = lote.dataInicio;
+    document.getElementById('btn-save-lote').innerText = 'Salvar Alterações';
+    
+    populateSpeciesSelect();
+    document.getElementById('lote-especie').value = lote.especieId;
+    
+    openModal('modal-lote');
+};
+
+window.deleteLote = function(id) {
+    if (confirm('Excluir este lote permanentemente?')) {
+        lotes = lotes.filter(l => l.id !== id);
+        saveData();
+        renderLotes();
+        updateDashboard();
+    }
+};
 
 // ==========================================
 // 8. DASHBOARD (FUSO HORÁRIO CORRIGIDO)
 // ==========================================
 function updateDashboard() {
     const ativo = lotes.find(l => l.ativo);
-    if (!ativo) { document.getElementById('dash-lote-name').innerText = 'Nenhum lote ativo'; document.getElementById('dash-species').innerText = '---'; document.getElementById('dash-temp').innerText = '--'; document.getElementById('dash-humid').innerText = '--%'; document.getElementById('dash-days-left').innerText = '-- dias'; document.getElementById('dash-progress-bar').style.width = '0%'; return; }
+    if (!ativo) {
+        document.getElementById('dash-lote-name').innerText = 'Nenhum lote ativo';
+        document.getElementById('dash-species').innerText = '---';
+        document.getElementById('dash-temp').innerText = '--';
+        document.getElementById('dash-humid').innerText = '--%';
+        document.getElementById('dash-days-left').innerText = '-- dias';
+        document.getElementById('dash-progress-bar').style.width = '0%';
+        return;
+    }
+
     const sp = species.find(s => s.id === ativo.especieId);
     document.getElementById('dash-lote-name').innerText = ativo.nome;
     document.getElementById('dash-species').innerText = sp ? sp.nome : '---';
     document.getElementById('dash-temp').innerText = sp ? sp.temp : '--';
     document.getElementById('dash-humid').innerText = sp ? sp.umid + '%' : '--%';
 
-    // Correção de Fuso Horário: Força o meio-dia para evitar mudança de dia errada
+    // Força meio-dia para evitar bugs de fuso horário
     const inicio = new Date(ativo.dataInicio + 'T12:00:00');
     const agora = new Date();
     const diasTotal = sp ? sp.dias : 21;
     
-    // Calcula diferença de dias meia-noite a meia-noite
+    // Calcula diferença de dias exatos (meia-noite a meia-noite)
     const inicioMs = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate()).getTime();
     const agoraMs = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate()).getTime();
     const diaAtual = Math.floor((agoraMs - inicioMs) / (1000 * 60 * 60 * 24));
     
     const diasFaltantes = Math.max(0, diasTotal - diaAtual);
-    document.getElementById('dash-days-left').innerText = diaAtual < 0 ? 'Ainda não iniciou' : diasFaltantes + ' dias';
-    document.getElementById('dash-progress-bar').style.width = (diaAtual < 0 ? 0 : Math.min(100, (diaAtual / diasTotal) * 100)) + '%';
+    
+    if (diaAtual < 0) {
+        document.getElementById('dash-days-left').innerText = 'Ainda não iniciou';
+        document.getElementById('dash-progress-bar').style.width = '0%';
+    } else {
+        document.getElementById('dash-days-left').innerText = diasFaltantes + ' dias';
+        document.getElementById('dash-progress-bar').style.width = Math.min(100, (diaAtual / diasTotal) * 100) + '%';
+    }
 }
 
 // ==========================================
 // 9. CHECKLIST
 // ==========================================
-function renderTimeline() { const u = document.getElementById('timeline-steps'); if(!u) return; u.innerHTML = steps.map((s, i) => `<li class="${s.done ? 'done' : ''}" onclick="toggleStep(${i})"><strong>${s.text}</strong><p class="step-desc">${s.desc}</p></li>`).join ''; }
-window.toggleStep = function(i) { if(steps[i]) { steps[i].done = !steps[i].done; saveData(); renderTimeline(); } };
+function renderTimeline() {
+    const ul = document.getElementById('timeline-steps');
+    if (!ul) return;
+    
+    ul.innerHTML = steps.map((s, i) => `
+        <li class="${s.done ? 'done' : ''}" onclick="toggleStep(${i})">
+            <strong>${s.text}</strong>
+            <p class="step-desc">${s.desc}</p>
+        </li>
+    `).join('');
+}
+
+window.toggleStep = function(i) {
+    if (steps[i]) {
+        steps[i].done = !steps[i].done;
+        saveData();
+        renderTimeline();
+    }
+};
 
 // ==========================================
-// 10. AGENDA (NOVO - FUNCIONAL)
+// 10. AGENDA (FUNCIONAL)
 // ==========================================
 function renderCalendar() {
-    const container = document.getElementById('calendar-events'); if(!container) return;
+    const container = document.getElementById('calendar-events');
+    if (!container) return;
+    
     const ativo = lotes.find(l => l.ativo);
-    if (!ativo) { container.innerHTML = '<p style="text-align:center; color:var(--text-dim); padding:40px 0;">Ative um lote para ver a agenda de eventos.</p>'; return; }
+    if (!ativo) {
+        container.innerHTML = '<p style="text-align:center; color:var(--text-dim); padding:40px 0;">Ative um lote para ver a agenda.</p>';
+        return;
+    }
     
     const sp = species.find(s => s.id === ativo.especieId);
     if (!sp) return;
@@ -202,6 +455,7 @@ function renderCalendar() {
     container.innerHTML = eventos.map(ev => {
         const dataFormatada = ev.data.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
         const isPast = ev.data.getTime() < new Date().setHours(0,0,0,0);
+        
         return `
         <div class="card-item" style="border-left: 4px solid ${ev.cor}; opacity: ${isPast ? 0.5 : 1};">
             <div>
@@ -215,87 +469,237 @@ function renderCalendar() {
 // ==========================================
 // 11. BOTÕES LIGAR/DESLIGAR
 // ==========================================
-let alarmInterval = null, alarmSeconds = 7200;
-const btnAlarm = document.getElementById('btn-alarm'), alarmText = document.getElementById('alarm-timer-text');
-const btnAutoTurn = document.getElementById('btn-auto-turn'), autoTurnText = document.getElementById('auto-turn-text');
+let alarmInterval = null;
+let alarmSeconds = 7200; // 2 horas
 
-function formatTime(s) { return `${Math.floor(s/3600).toString().padStart(2,'0')}:${Math.floor((s%3600)/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`; }
+const btnAlarm = document.getElementById('btn-alarm');
+const alarmText = document.getElementById('alarm-timer-text');
+const btnAutoTurn = document.getElementById('btn-auto-turn');
+const autoTurnText = document.getElementById('auto-turn-text');
+
+function formatTime(totalSeconds) {
+    const h = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+    const m = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+    const s = (totalSeconds % 60).toString().padStart(2, '0');
+    return h + ':' + m + ':' + s;
+}
 
 btnAlarm.addEventListener('click', () => {
     desbloquearAudio();
-    if (alarmInterval) { clearInterval(alarmInterval); alarmInterval = null; alarmSeconds = 7200; btnAlarm.innerText = 'LIGAR'; btnAlarm.classList.remove('active'); alarmText.innerText = 'Toque para iniciar (02:00h)'; } 
-    else { alarmSeconds = 7200; btnAlarm.innerText = 'ZERAR'; btnAlarm.classList.add('active'); alarmInterval = setInterval(() => { alarmSeconds--; alarmText.innerText = `Virando em: ${formatTime(alarmSeconds)}`; if (alarmSeconds <= 0) { playSound('alarm'); clearInterval(alarmInterval); alarmInterval = null; btnAlarm.innerText = 'LIGAR'; btnAlarm.classList.remove('active'); alarmText.innerText = '⚠️ HORA DE VIRAR! Toque para reiniciar.'; if(navigator.vibrate) navigator.vibrate([500,200,500]); } }, 1000); }
+    
+    if (alarmInterval) {
+        // DESLIGAR
+        clearInterval(alarmInterval);
+        alarmInterval = null;
+        alarmSeconds = 7200;
+        btnAlarm.innerText = 'LIGAR';
+        btnAlarm.classList.remove('active');
+        alarmText.innerText = 'Toque para iniciar (02:00h)';
+    } else {
+        // LIGAR
+        alarmSeconds = 7200;
+        btnAlarm.innerText = 'ZERAR';
+        btnAlarm.classList.add('active');
+        
+        alarmInterval = setInterval(() => {
+            alarmSeconds--;
+            alarmText.innerText = 'Virando em: ' + formatTime(alarmSeconds);
+            
+            if (alarmSeconds <= 0) {
+                playSound('alarm');
+                clearInterval(alarmInterval);
+                alarmInterval = null;
+                btnAlarm.innerText = 'LIGAR';
+                btnAlarm.classList.remove('active');
+                alarmText.innerText = '⚠️ HORA DE VIRAR! Toque para reiniciar.';
+                if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
+            }
+        }, 1000);
+    }
 });
 
-// Viragem Automática agora é só LIGAR/DESLIGAR
+// Viragem Automática (Apenas Liga/Desliga)
 btnAutoTurn.addEventListener('click', () => {
     desbloquearAudio();
-    if (btnAutoTurn.classList.contains('active')) { btnAutoTurn.innerText = 'LIGAR'; btnAutoTurn.classList.remove('active'); autoTurnText.innerText = 'Motor desligado'; } 
-    else { btnAutoTurn.innerText = 'DESLIGAR'; btnAutoTurn.classList.add('active'); autoTurnText.innerText = 'Motor automático ligado'; }
+    
+    if (btnAutoTurn.classList.contains('active')) {
+        btnAutoTurn.innerText = 'LIGAR';
+        btnAutoTurn.classList.remove('active');
+        autoTurnText.innerText = 'Motor desligado';
+    } else {
+        btnAutoTurn.innerText = 'DESLIGAR';
+        btnAutoTurn.classList.add('active');
+        autoTurnText.innerText = 'Motor automático ligado';
+    }
 });
 
 // ==========================================
 // 12. CHAT IA
 // ==========================================
 const chatContainer = document.getElementById('chat-messages');
-document.querySelectorAll('.trigger-btn').forEach(btn => { btn.addEventListener('click', () => handleChat(btn.dataset.msg)); });
-document.getElementById('btn-send-chat').addEventListener('click', () => { const i = document.getElementById('chat-input'); if (i.value.trim()) handleChat(i.value); i.value = ''; });
-document.getElementById('chat-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') { const i = document.getElementById('chat-input'); if (i.value.trim()) handleChat(i.value); i.value = ''; } });
 
-function addMessage(text, type) { if(!chatContainer) return; const d = document.createElement('div'); d.className = `chat-msg ${type}`; d.innerHTML = `<p>${text.replace(/\n/g, '<br>')}</p>`; chatContainer.appendChild(d); chatContainer.scrollTop = chatContainer.scrollHeight; }
+document.querySelectorAll('.trigger-btn').forEach(btn => {
+    btn.addEventListener('click', () => handleChat(btn.dataset.msg));
+});
+
+document.getElementById('btn-send-chat').addEventListener('click', () => {
+    const input = document.getElementById('chat-input');
+    if (input.value.trim()) handleChat(input.value);
+    input.value = '';
+});
+
+document.getElementById('chat-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        const input = document.getElementById('chat-input');
+        if (input.value.trim()) handleChat(input.value);
+        input.value = '';
+    }
+});
+
+function addMessage(text, type) {
+    if (!chatContainer) return;
+    const div = document.createElement('div');
+    div.className = 'chat-msg ' + type;
+    div.innerHTML = '<p>' + text.replace(/\n/g, '<br>') + '</p>';
+    chatContainer.appendChild(div);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
 
 function getAppContext() {
     const ativo = lotes.find(l => l.ativo);
-    if (!ativo) return "AVISO: O usuário NÃO possui nenhum lote ativo.";
+    if (!ativo) return "AVISO: O usuário NÃO possui nenhum lote ativo no momento.";
+    
     const sp = species.find(s => s.id === ativo.especieId);
     const inicio = new Date(ativo.dataInicio + 'T12:00:00');
+    const diasTotal = sp ? sp.dias : 21;
+    
     const inicioMs = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate()).getTime();
     const agoraMs = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()).getTime();
     const diaAtual = Math.floor((agoraMs - inicioMs) / (1000 * 60 * 60 * 24));
-    const diasFaltantes = Math.max(0, (sp ? sp.dias : 21) - diaAtual);
+    const diasFaltantes = Math.max(0, diasTotal - diaAtual);
     
-    let c = `CONTEXTO ATUAL:\n- Lote: "${ativo.nome}"\n- Espécie: ${sp ? sp.nome : '?'}\n- Ovos: ${ativo.qtd}\n- Início: ${inicio.toLocaleDateString('pt-BR')}\n`;
-    if(diaAtual < 0) c += `- Status: Ainda não iniciou (começa amanhã).\n`;
-    else c += `- Dia atual: ${diaAtual}\n- Dias restantes: ${diasFaltantes}\n`;
-    if (sp) c += `- Temp: ${sp.temp}°C | Umid: ${sp.umid}%\n`;
-    if (diasFaltantes <= 3 && diaAtual >= 0) c += `!!! ATENÇÃO: Últimos 3 dias. Viragem parada.`;
-    return c;
+    let contexto = 'CONTEXTO ATUAL DO APP:\n';
+    contexto += '- Lote: "' + ativo.nome + '"\n';
+    contexto += '- Espécie: ' + (sp ? sp.nome : '?') + '\n';
+    contexto += '- Ovos: ' + ativo.qtd + '\n';
+    contexto += '- Início: ' + inicio.toLocaleDateString('pt-BR') + '\n';
+    
+    if (diaAtual < 0) {
+        contexto += '- Status: Ainda não iniciou.\n';
+    } else {
+        contexto += '- Dia atual: ' + diaAtual + '\n';
+        contexto += '- Dias restantes: ' + diasFaltantes + '\n';
+    }
+    
+    if (sp) {
+        contexto += '- Temp alvo: ' + sp.temp + '°C | Umid alvo: ' + sp.umid + '%\n';
+    }
+    
+    if (diasFaltantes <= 3 && diaAtual >= 0) {
+        contexto += '!!! ATENÇÃO: Estamos nos últimos 3 dias. Viragem deve estar parada.';
+    }
+    
+    return contexto;
 }
 
 async function handleChat(msg) {
-    desbloquearAudio(); playSound('send'); addMessage(msg, 'user');
+    desbloquearAudio();
+    playSound('send');
+    addMessage(msg, 'user');
+    
     const apiKey = localStorage.getItem('ib_groq_key');
-    if (!apiKey) { setTimeout(() => { playSound('receive'); addMessage("Configure a chave API do Groq no ícone ⚙️.", 'bot'); }, 500); return; }
+    if (!apiKey) {
+        setTimeout(() => {
+            playSound('receive');
+            addMessage("Configure a chave API do Groq no ícone ⚙️ para ativar a IA.", 'bot');
+        }, 500);
+        return;
+    }
+
     try {
+        const contextData = getAppContext();
+
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-            body: JSON.stringify({ model: 'llama-3.1-8b-instant', messages: [
-                { role: 'system', content: `Você é um especialista em incubação. Responda em pt-BR. REGRA: Use o CONTEXTO DO APP abaixo. Se não há lote ativo, diga isso. Nunca invente dados.\n\n${getAppContext()}` },
-                { role: 'user', content: msg }
-            ], temperature: 0.7, max_tokens: 1024 })
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json', 
+                'Authorization': 'Bearer ' + apiKey 
+            },
+            body: JSON.stringify({
+                model: 'llama-3.1-8b-instant',
+                messages: [
+                    { 
+                        role: 'system', 
+                        content: 'Você é um especialista em incubação. Responda em pt-BR. REGRA: Use o CONTEXTO DO APP abaixo. Se não há lote ativo, diga isso claramente. Nunca invente dados.\n\n' + contextData
+                    },
+                    { role: 'user', content: msg }
+                ],
+                temperature: 0.7,
+                max_tokens: 1024
+            })
         });
+
         const data = await response.json();
         playSound('receive');
-        if (data.error) addMessage(`Erro: ${data.error.message}`, 'bot');
-        else if (data.choices && data.choices[0]) addMessage(data.choices[0].message.content, 'bot');
-        else addMessage('Sem resposta.', 'bot');
-    } catch (e) { playSound('receive'); addMessage('Erro de conexão.', 'bot'); }
+        
+        if (data.error) {
+            addMessage('Erro: ' + data.error.message, 'bot');
+        } else if (data.choices && data.choices[0]) {
+            addMessage(data.choices[0].message.content, 'bot');
+        } else {
+            addMessage('A IA não retornou resposta.', 'bot');
+        }
+    } catch (error) {
+        playSound('receive');
+        addMessage('Erro de conexão. Verifique sua internet.', 'bot');
+    }
 }
 
 // ==========================================
 // 13. CONFIGURAÇÕES
 // ==========================================
 function checkApiKey() {
-    const k = localStorage.getItem('ib_groq_key');
-    document.getElementById('api-key-view').style.display = k ? 'none' : 'block';
-    document.getElementById('api-key-active-view').style.display = k ? 'block' : 'none';
-    document.getElementById('btn-remove-api').style.display = k ? 'block' : 'none';
+    const key = localStorage.getItem('ib_groq_key');
+    if (key) {
+        document.getElementById('api-key-view').style.display = 'none';
+        document.getElementById('api-key-active-view').style.display = 'block';
+        document.getElementById('btn-remove-api').style.display = 'block';
+    } else {
+        document.getElementById('api-key-view').style.display = 'block';
+        document.getElementById('api-key-active-view').style.display = 'none';
+        document.getElementById('btn-remove-api').style.display = 'none';
+    }
 }
-document.getElementById('btn-save-api').addEventListener('click', () => { const k = document.getElementById('input-api-key').value.trim(); if (k.startsWith('gsk_')) { localStorage.setItem('ib_groq_key', k); checkApiKey(); } else alert('Chave inválida.'); });
-document.getElementById('btn-remove-api').addEventListener('click', () => { localStorage.removeItem('ib_groq_key'); document.getElementById('input-api-key').value = ''; checkApiKey(); });
+
+document.getElementById('btn-save-api').addEventListener('click', () => {
+    const key = document.getElementById('input-api-key').value.trim();
+    if (key.startsWith('gsk_')) {
+        localStorage.setItem('ib_groq_key', key);
+        checkApiKey();
+    } else {
+        alert('Chave inválida. Deve começar com gsk_');
+    }
+});
+
+document.getElementById('btn-remove-api').addEventListener('click', () => {
+    localStorage.removeItem('ib_groq_key');
+    document.getElementById('input-api-key').value = '';
+    checkApiKey();
+});
 
 // ==========================================
 // 14. INICIALIZAÇÃO
 // ==========================================
-function init() { renderSpeciesTable(); renderLotes(); updateDashboard(); renderTimeline(); checkApiKey(); }
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+function init() {
+    renderSpeciesTable();
+    renderLotes();
+    updateDashboard();
+    renderTimeline();
+    checkApiKey();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
