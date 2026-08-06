@@ -1,8 +1,5 @@
-// ==========================================
-// LIMPEZA DE BUGS ANTIGOS (Apague ou comente a linha abaixo após abrir o app uma vez)
-// ==========================================
+// LIMPEZA ÚNICA (Apague esta linha após abrir o app uma vez e cadastrar seu lote)
 localStorage.clear(); 
-
 
 // ==========================================
 // 1. REGISTRO DO SERVICE WORKER (PWA)
@@ -74,7 +71,7 @@ function playSound(type) {
 }
 
 // ==========================================
-// 3. DADOS E ESTADO DO APP
+// 3. DADOS E ESTADO DO APP (COM PERU)
 // ==========================================
 const defaultSpecies = [
     { id: 1, nome: 'Galinha', dias: 21, temp: 37.5, umid: 60 },
@@ -84,7 +81,8 @@ const defaultSpecies = [
     { id: 5, nome: 'Pavão', dias: 28, temp: 37.5, umid: 60 },
     { id: 6, nome: 'Faisão', dias: 24, temp: 37.8, umid: 65 },
     { id: 7, nome: 'Ganso', dias: 30, temp: 37.5, umid: 70 },
-    { id: 8, nome: 'Cisne', dias: 35, temp: 37.2, umid: 65 }
+    { id: 8, nome: 'Cisne', dias: 35, temp: 37.2, umid: 65 },
+    { id: 9, nome: 'Peru', dias: 28, temp: 37.5, umid: 55 }
 ];
 
 const defaultSteps = [
@@ -145,7 +143,6 @@ document.getElementById('btn-add-lote').addEventListener('click', () => {
     document.getElementById('edit-lote-id').value = '';
     document.getElementById('lote-nome').value = '';
     document.getElementById('lote-qtd').value = '';
-    // Pega a data REAL de hoje sem travar
     document.getElementById('lote-data').valueAsDate = new Date();
     document.getElementById('btn-save-lote').innerText = 'Criar Lote';
     populateSpeciesSelect();
@@ -336,7 +333,7 @@ window.deleteLote = function(id) {
 };
 
 // ==========================================
-// 8. DASHBOARD (DATA REAL)
+// 8. DASHBOARD (DATA 100% REAL)
 // ==========================================
 function updateDashboard() {
     const ativo = lotes.find(l => l.ativo);
@@ -356,7 +353,7 @@ function updateDashboard() {
     document.getElementById('dash-temp').innerText = sp ? sp.temp : '--';
     document.getElementById('dash-humid').innerText = sp ? sp.umid + '%' : '--%';
 
-    // Calcula usando a data real do sistema de forma segura
+    // Cálculo seguro de datas splitando a string para evitar bugs de meia-noite/fuso
     const partes = ativo.dataInicio.split('-');
     const inicioDate = new Date(partes[0], partes[1] - 1, partes[2]);
     const hoje = new Date();
@@ -366,7 +363,6 @@ function updateDashboard() {
     const diasTotal = sp ? sp.dias : 21;
     const diferencaMs = hoje.getTime() - inicioDate.getTime();
     const diaAtual = Math.floor(diferencaMs / (1000 * 60 * 60 * 24));
-    
     const diasFaltantes = Math.max(0, diasTotal - diaAtual);
     
     if (diaAtual < 0) {
@@ -505,7 +501,7 @@ btnAutoTurn.addEventListener('click', () => {
 });
 
 // ==========================================
-// 12. CHAT IA (LEITURA PERFEITA)
+// 12. CHAT IA
 // ==========================================
 const chatContainer = document.getElementById('chat-messages');
 
