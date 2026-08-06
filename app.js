@@ -1,10 +1,5 @@
 // ==========================================
-// 1. LIMPEZA SEGURA (Se o app travar, descomente a linha abaixo, rode, e comente de novo)
-// ==========================================
-// localStorage.clear(); 
-
-// ==========================================
-// 2. REGISTRO DO SERVICE WORKER (PWA)
+// 1. REGISTRO DO SERVICE WORKER (PWA)
 // ==========================================
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -15,7 +10,7 @@ if ('serviceWorker' in navigator) {
 }
 
 // ==========================================
-// 3. SONS DO CHAT (Estilo ChatGPT)
+// 2. SONS DO CHAT (Estilo ChatGPT)
 // ==========================================
 let audioCtx;
 function getAudioContext() {
@@ -47,18 +42,21 @@ function playSound(type) {
             oscillator.start(ctx.currentTime);
             oscillator.stop(ctx.currentTime + 0.2);
         }
-    } catch (e) {
-        // Silencioso se o navegador bloquear o áudio
-    }
+    } catch (e) {}
 }
 
 // ==========================================
-// 4. DADOS COM BLINDAGEM (TRY/CATCH)
+// 3. DADOS E ESTADO DO APP (Lista Exata)
 // ==========================================
 const defaultSpecies = [
     { id: 1, nome: 'Galinha', dias: 21, temp: 37.5, umid: 60 },
     { id: 2, nome: 'Pato', dias: 28, temp: 37.5, umid: 70 },
-    { id: 3, nome: 'Codorna', dias: 17, temp: 37.8, umid: 60 }
+    { id: 3, nome: 'Codornas', dias: 17, temp: 37.8, umid: 60 },
+    { id: 4, nome: 'Calopsita', dias: 18, temp: 37.3, umid: 65 },
+    { id: 5, nome: 'Pavão', dias: 28, temp: 37.5, umid: 60 },
+    { id: 6, nome: 'Faisão', dias: 24, temp: 37.8, umid: 65 },
+    { id: 7, nome: 'Ganso', dias: 30, temp: 37.5, umid: 70 },
+    { id: 8, nome: 'Cisne', dias: 35, temp: 37.2, umid: 65 }
 ];
 
 const defaultSteps = [
@@ -74,8 +72,21 @@ let species = [];
 let lotes = [];
 let steps = [];
 
-// Tenta carregar do localStorage, se der erro, usa os padrões
-try { species = JSON.parse(localStorage.getItem('ib_species')) || defaultSpecies; } catch(e) { species = defaultSpecies; }
+// Se o usuário já tinha a lista antiga, força atualizar para esta nova lista correta
+try { 
+    const savedSpecies = JSON.parse(localStorage.getItem('ib_species'));
+    // Verifica se a lista salva é diferente da nova. Se for, atualiza.
+    if (!Array.isArray(savedSpecies) || savedSpecies.length !== defaultSpecies.length || savedSpecies[0].nome !== 'Galinha' || !savedSpecies.find(s => s.nome === 'Pavão')) {
+        species = defaultSpecies; // Força a lista nova se tiver faltando alguma ave
+        localStorage.setItem('ib_species', JSON.stringify(species));
+    } else {
+        species = savedSpecies;
+    }
+} catch(e) { 
+    species = defaultSpecies; 
+    localStorage.setItem('ib_species', JSON.stringify(species));
+}
+
 try { lotes = JSON.parse(localStorage.getItem('ib_lotes')) || []; } catch(e) { lotes = []; }
 try { steps = JSON.parse(localStorage.getItem('ib_steps')) || defaultSteps; } catch(e) { steps = defaultSteps; }
 
@@ -84,13 +95,11 @@ function saveData() {
         localStorage.setItem('ib_species', JSON.stringify(species));
         localStorage.setItem('ib_lotes', JSON.stringify(lotes));
         localStorage.setItem('ib_steps', JSON.stringify(steps));
-    } catch(e) {
-        console.error("Erro ao salvar dados:", e);
-    }
+    } catch(e) { console.error("Erro ao salvar:", e); }
 }
 
 // ==========================================
-// 5. NAVEGAÇÃO
+// 4. NAVEGAÇÃO
 // ==========================================
 document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -103,7 +112,7 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
 });
 
 // ==========================================
-// 6. MODAIS
+// 5. MODAIS
 // ==========================================
 function openModal(id) { const m = document.getElementById(id); if(m) m.classList.add('show'); }
 function closeModal(id) { const m = document.getElementById(id); if(m) m.classList.remove('show'); }
@@ -139,7 +148,7 @@ window.addEventListener('click', (e) => {
 });
 
 // ==========================================
-// 7. CRUD ESPÉCIES
+// 6. CRUD ESPÉCIES
 // ==========================================
 function renderSpeciesTable() {
     const tbody = document.getElementById('especies-tbody');
@@ -178,7 +187,7 @@ window.deleteSpecies = function(id) {
 };
 
 // ==========================================
-// 8. CRUD LOTES
+// 7. CRUD LOTES
 // ==========================================
 function populateSpeciesSelect() {
     const select = document.getElementById('lote-especie');
@@ -254,29 +263,21 @@ function renderLotes() {
 window.toggleLoteStatus = function(id) {
     const lote = lotes.find(l => l.id === id);
     if (lote) {
-        if (lote.ativo) {
-            lote.ativo = false;
-        } else {
-            lotes.forEach(l => l.ativo = false);
-            lote.ativo = true;
-        }
-        saveData();
-        renderLotes();
-        updateDashboard();
+        if (lote.ativo) { lote.ativo = false; } 
+        else { lotes.forEach(l => l.ativo = false); lote.ativo = true; }
+        saveData(); renderLotes(); updateDashboard();
     }
 };
 
 window.editLote = function(id) {
     const lote = lotes.find(l => l.id === id);
     if (!lote) return;
-    
     document.getElementById('lote-modal-title').innerText = 'Editar Lote';
     document.getElementById('edit-lote-id').value = lote.id;
     document.getElementById('lote-nome').value = lote.nome;
     document.getElementById('lote-qtd').value = lote.qtd;
     document.getElementById('lote-data').value = lote.dataInicio;
     document.getElementById('btn-save-lote').innerText = 'Salvar Alterações';
-    
     populateSpeciesSelect();
     document.getElementById('lote-especie').value = lote.especieId;
     openModal('modal-lote');
@@ -285,14 +286,12 @@ window.editLote = function(id) {
 window.deleteLote = function(id) {
     if (confirm('Excluir este lote permanentemente?')) {
         lotes = lotes.filter(l => l.id !== id);
-        saveData();
-        renderLotes();
-        updateDashboard();
+        saveData(); renderLotes(); updateDashboard();
     }
 };
 
 // ==========================================
-// 9. DASHBOARD
+// 8. DASHBOARD
 // ==========================================
 function updateDashboard() {
     const ativo = lotes.find(l => l.ativo);
@@ -318,12 +317,11 @@ function updateDashboard() {
     const diasFaltantes = Math.max(0, diasTotal - diaAtual);
     
     document.getElementById('dash-days-left').innerText = diasFaltantes + ' dias';
-    const progress = Math.min(100, (diaAtual / diasTotal) * 100);
-    document.getElementById('dash-progress-bar').style.width = progress + '%';
+    document.getElementById('dash-progress-bar').style.width = Math.min(100, (diaAtual / diasTotal) * 100) + '%';
 }
 
 // ==========================================
-// 10. CHECKLIST
+// 9. CHECKLIST
 // ==========================================
 function renderTimeline() {
     const ul = document.getElementById('timeline-steps');
@@ -337,15 +335,11 @@ function renderTimeline() {
 }
 
 window.toggleStep = function(i) {
-    if(steps[i]) {
-        steps[i].done = !steps[i].done;
-        saveData();
-        renderTimeline();
-    }
+    if(steps[i]) { steps[i].done = !steps[i].done; saveData(); renderTimeline(); }
 };
 
 // ==========================================
-// 11. CHAT IA
+// 10. CHAT IA
 // ==========================================
 const chatContainer = document.getElementById('chat-messages');
 
@@ -385,7 +379,7 @@ async function handleChat(msg) {
     if (!apiKey) {
         setTimeout(() => {
             playSound('receive');
-            addMessage("Para obter respostas inteligentes, configure sua chave API do Groq no ícone ⚙️. É gratuito!", 'bot');
+            addMessage("Para obter respostas inteligentes, configure sua chave API do Groq no ícone ⚙️.", 'bot');
         }, 500);
         return;
     }
@@ -393,23 +387,32 @@ async function handleChat(msg) {
     try {
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+            headers: { 
+                'Content-Type': 'application/json', 
+                'Authorization': `Bearer ${apiKey}` 
+            },
             body: JSON.stringify({
-                model: 'llama-3-8b-8192',
+                model: 'llama-3.1-8b-instant',
                 messages: [
-                    { role: 'system', content: 'Você é um especialista em incubação de ovos de aves. Responda de forma clara e objetiva em português do Brasil.' },
+                    { role: 'system', content: 'Você é um especialista mundial em incubação de ovos de aves. Responda de forma clara, objetiva e amigável em português do Brasil.' },
                     { role: 'user', content: msg }
-                ]
+                ],
+                temperature: 0.7,
+                max_tokens: 1024
             })
         });
 
         const data = await response.json();
-        if (data.choices && data.choices[0]) {
+        
+        if (data.error) {
+            playSound('receive');
+            addMessage(`Erro da API: ${data.error.message}`, 'bot');
+        } else if (data.choices && data.choices[0]) {
             playSound('receive');
             addMessage(data.choices[0].message.content, 'bot');
         } else {
             playSound('receive');
-            addMessage('Erro na resposta da IA. Verifique sua chave API.', 'bot');
+            addMessage('A IA não retornou resposta. Tente novamente.', 'bot');
         }
     } catch (error) {
         playSound('receive');
@@ -418,7 +421,7 @@ async function handleChat(msg) {
 }
 
 // ==========================================
-// 12. CONFIGURAÇÕES (API KEY)
+// 11. CONFIGURAÇÕES (API KEY)
 // ==========================================
 function checkApiKey() {
     const key = localStorage.getItem('ib_groq_key');
@@ -450,7 +453,7 @@ document.getElementById('btn-remove-api').addEventListener('click', () => {
 });
 
 // ==========================================
-// 13. INICIALIZAÇÃO FINAL
+// 12. INICIALIZAÇÃO
 // ==========================================
 function init() {
     renderSpeciesTable();
@@ -460,7 +463,6 @@ function init() {
     checkApiKey();
 }
 
-// Garante que o DOM carregou antes de rodar
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
 } else {
