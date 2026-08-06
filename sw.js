@@ -1,7 +1,7 @@
-const CACHE_NAME = 'incubapro-v5';
+const CACHE_NAME = 'incubapro-v1';
 
-// Arquivos para cachear na instalação
-const URLS_TO_CACHE = [
+// Arquivos para cachear no primeiro acesso
+const ASSETS = [
   './',
   './index.html',
   './style.css',
@@ -11,60 +11,49 @@ const URLS_TO_CACHE = [
   './icon-512.png'
 ];
 
-// Instala: cacheia todos os arquivos do app
-self.addEventListener('install', event => {
+// Instalação: cacheia os arquivos principais
+self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(URLS_TO_CACHE);
-    })
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(ASSETS))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
-// Ativa: limpa caches de versões antigas
-self.addEventListener('activate', event => {
+// Ativação: limpa caches antigos se houver atualização
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
-      )
-    )
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+      );
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Fetch: serve do cache primeiro, rede como fallback
-self.addEventListener('fetch', event => {
-  // Só intercepta requisições GET
-  if (event.request.method !== 'GET') return;
+// Intercepta requisições: Tenta a rede primeiro, senão usa o cache
+self.addEventListener('fetch', (event) => {
+  // Ignora requisições de API (Groq)
+  if (event.request.url.includes('groq.com')) return;
 
   event.respondWith(
-    caches.match(event.request).then(cachedResponse => {
-      // Se tem no cache, retorna
-      if (cachedResponse) return cachedResponse;
-
-      // Se não tem, busca na rede
-      return fetch(event.request)
-        .then(networkResponse => {
-          // Se a resposta for válida, salva no cache para uso futuro
-          if (
-            networkResponse &&
-            networkResponse.status === 200 &&
-            networkResponse.type === 'basic'
-          ) {
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then(cache => {
-              cache.put(event.request, responseToCache);
-            });
-          }
-          return networkResponse;
-        })
-        .catch(() => {
-          // Se falhou a rede e não tem cache, serve o index.html
-          if (event.request.destination === 'document') {
-            return caches.match('./index.html');
-          }
+    fetch(event.request)
+      .then((response) => {
+        // Se a rede funcionou, clona e salva no cache
+        if (response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
+        return response;
+      })
+      .catch(() => {
+        // Se a rede falhou (offline), busca no cache
+        return caches.match(event.request).then((response) => {
+          // Fallback para a página principal se o arquivo específico não estiver no cache
+          return response || caches.match('./index.html');
         });
-    })
+      })
   );
 });
