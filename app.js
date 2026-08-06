@@ -1,55 +1,65 @@
 // ==========================================
-// REGISTRO DO SERVICE WORKER (PWA)
+// 1. LIMPEZA SEGURA (Se o app travar, descomente a linha abaixo, rode, e comente de novo)
+// ==========================================
+// localStorage.clear(); 
+
+// ==========================================
+// 2. REGISTRO DO SERVICE WORKER (PWA)
 // ==========================================
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-            .then((reg) => console.log('✅ Service Worker registrado. PWA Pronta!'))
-            .catch((err) => console.error('❌ Falha no SW:', err));
+            .then((reg) => console.log('✅ PWA Pronta!'))
+            .catch((err) => console.warn('SW Falhou:', err));
     });
 }
 
 // ==========================================
-// SONS DO CHAT (Estilo ChatGPT)
+// 3. SONS DO CHAT (Estilo ChatGPT)
 // ==========================================
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let audioCtx;
+function getAudioContext() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx;
+}
 
 function playSound(type) {
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-    
-    if (type === 'send') {
-        // Som agudo e rápido de enviar
-        oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
-        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-        oscillator.start(audioCtx.currentTime);
-        oscillator.stop(audioCtx.currentTime + 0.1);
-    } else if (type === 'receive') {
-        // Som duplo de receber (mais suave)
-        oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
-        oscillator.frequency.setValueAtTime(900, audioCtx.currentTime + 0.1);
-        gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-        oscillator.start(audioCtx.currentTime);
-        oscillator.stop(audioCtx.currentTime + 0.2);
+    try {
+        const ctx = getAudioContext();
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        oscillator.type = 'sine';
+        
+        if (type === 'send') {
+            oscillator.frequency.setValueAtTime(800, ctx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+            oscillator.start(ctx.currentTime);
+            oscillator.stop(ctx.currentTime + 0.1);
+        } else if (type === 'receive') {
+            oscillator.frequency.setValueAtTime(600, ctx.currentTime);
+            oscillator.frequency.setValueAtTime(900, ctx.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0.08, ctx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            oscillator.start(ctx.currentTime);
+            oscillator.stop(ctx.currentTime + 0.2);
+        }
+    } catch (e) {
+        // Silencioso se o navegador bloquear o áudio
     }
 }
 
 // ==========================================
-// DADOS E ESTADO DO APP
+// 4. DADOS COM BLINDAGEM (TRY/CATCH)
 // ==========================================
 const defaultSpecies = [
     { id: 1, nome: 'Galinha', dias: 21, temp: 37.5, umid: 60 },
     { id: 2, nome: 'Pato', dias: 28, temp: 37.5, umid: 70 },
     { id: 3, nome: 'Codorna', dias: 17, temp: 37.8, umid: 60 }
 ];
-
-let species = JSON.parse(localStorage.getItem('ib_species')) || defaultSpecies;
-let lotes = JSON.parse(localStorage.getItem('ib_lotes')) || [];
 
 const defaultSteps = [
     { text: 'Aquecer a incubadora', desc: 'Ligue 24h antes para estabilizar a temperatura.', done: false },
@@ -59,36 +69,48 @@ const defaultSteps = [
     { text: 'Parar viragens (3 dias antes)', desc: 'Deixe os ovos em repouso para o nascimento.', done: false },
     { text: 'Eclosão', desc: 'Não abra a incubadora! Aguarde os pintinhos secarem.', done: false }
 ];
-let steps = JSON.parse(localStorage.getItem('ib_steps')) || defaultSteps;
+
+let species = [];
+let lotes = [];
+let steps = [];
+
+// Tenta carregar do localStorage, se der erro, usa os padrões
+try { species = JSON.parse(localStorage.getItem('ib_species')) || defaultSpecies; } catch(e) { species = defaultSpecies; }
+try { lotes = JSON.parse(localStorage.getItem('ib_lotes')) || []; } catch(e) { lotes = []; }
+try { steps = JSON.parse(localStorage.getItem('ib_steps')) || defaultSteps; } catch(e) { steps = defaultSteps; }
 
 function saveData() {
-    localStorage.setItem('ib_species', JSON.stringify(species));
-    localStorage.setItem('ib_lotes', JSON.stringify(lotes));
-    localStorage.setItem('ib_steps', JSON.stringify(steps));
+    try {
+        localStorage.setItem('ib_species', JSON.stringify(species));
+        localStorage.setItem('ib_lotes', JSON.stringify(lotes));
+        localStorage.setItem('ib_steps', JSON.stringify(steps));
+    } catch(e) {
+        console.error("Erro ao salvar dados:", e);
+    }
 }
 
 // ==========================================
-// NAVEGAÇÃO
+// 5. NAVEGAÇÃO
 // ==========================================
 document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         btn.classList.add('active');
-        document.getElementById(`view-${btn.dataset.view}`).classList.add('active');
+        const viewEl = document.getElementById(`view-${btn.dataset.view}`);
+        if(viewEl) viewEl.classList.add('active');
     });
 });
 
 // ==========================================
-// MODAIS
+// 6. MODAIS
 // ==========================================
-function openModal(id) { document.getElementById(id).classList.add('show'); }
-function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function openModal(id) { const m = document.getElementById(id); if(m) m.classList.add('show'); }
+function closeModal(id) { const m = document.getElementById(id); if(m) m.classList.remove('show'); }
 
 document.getElementById('btn-settings').addEventListener('click', () => openModal('modal-settings'));
 document.getElementById('close-settings').addEventListener('click', () => closeModal('modal-settings'));
 
-// Lotes Modal
 document.getElementById('btn-add-lote').addEventListener('click', () => {
     document.getElementById('lote-modal-title').innerText = 'Novo Lote';
     document.getElementById('edit-lote-id').value = '';
@@ -101,7 +123,6 @@ document.getElementById('btn-add-lote').addEventListener('click', () => {
 });
 document.getElementById('close-lote').addEventListener('click', () => closeModal('modal-lote'));
 
-// Espécies Modal
 document.getElementById('btn-add-species').addEventListener('click', () => {
     document.getElementById('species-modal-title').innerText = 'Nova Espécie';
     document.getElementById('edit-species-id').value = '';
@@ -118,10 +139,11 @@ window.addEventListener('click', (e) => {
 });
 
 // ==========================================
-// CRUD ESPÉCIES
+// 7. CRUD ESPÉCIES
 // ==========================================
 function renderSpeciesTable() {
     const tbody = document.getElementById('especies-tbody');
+    if(!tbody) return;
     tbody.innerHTML = species.map(sp => `
         <tr>
             <td>${sp.nome}</td>
@@ -156,10 +178,11 @@ window.deleteSpecies = function(id) {
 };
 
 // ==========================================
-// CRUD LOTES (COM EDIÇÃO E ATIVO/INATIVO)
+// 8. CRUD LOTES
 // ==========================================
 function populateSpeciesSelect() {
     const select = document.getElementById('lote-especie');
+    if(!select) return;
     select.innerHTML = '<option value="">Selecione...</option>' + 
         species.map(sp => `<option value="${sp.id}">${sp.nome}</option>`).join('');
 }
@@ -174,7 +197,6 @@ document.getElementById('btn-save-lote').addEventListener('click', () => {
     if (!nome || !especieId || !data) return alert('Preencha Nome, Espécie e Data.');
 
     if (editId) {
-        // Atualizar lote existente
         const lote = lotes.find(l => l.id == editId);
         if (lote) {
             lote.nome = nome;
@@ -183,16 +205,8 @@ document.getElementById('btn-save-lote').addEventListener('click', () => {
             lote.dataInicio = data;
         }
     } else {
-        // Criar novo lote
-        lotes.forEach(l => l.ativo = false); // Desativa outros
-        lotes.push({
-            id: Date.now(),
-            nome,
-            especieId: parseInt(especieId),
-            qtd,
-            dataInicio: data,
-            ativo: true
-        });
+        lotes.forEach(l => l.ativo = false);
+        lotes.push({ id: Date.now(), nome, especieId: parseInt(especieId), qtd, dataInicio: data, ativo: true });
     }
     
     saveData();
@@ -203,6 +217,8 @@ document.getElementById('btn-save-lote').addEventListener('click', () => {
 
 function renderLotes() {
     const list = document.getElementById('lotes-list');
+    if(!list) return;
+    
     if (lotes.length === 0) {
         list.innerHTML = '<p style="text-align:center; color:var(--text-dim); padding:40px 0;">Nenhum lote cadastrado.</p>';
         return;
@@ -241,7 +257,7 @@ window.toggleLoteStatus = function(id) {
         if (lote.ativo) {
             lote.ativo = false;
         } else {
-            lotes.forEach(l => l.ativo = false); // Só pode ter 1 ativo
+            lotes.forEach(l => l.ativo = false);
             lote.ativo = true;
         }
         saveData();
@@ -263,7 +279,6 @@ window.editLote = function(id) {
     
     populateSpeciesSelect();
     document.getElementById('lote-especie').value = lote.especieId;
-    
     openModal('modal-lote');
 };
 
@@ -277,7 +292,7 @@ window.deleteLote = function(id) {
 };
 
 // ==========================================
-// DASHBOARD
+// 9. DASHBOARD
 // ==========================================
 function updateDashboard() {
     const ativo = lotes.find(l => l.ativo);
@@ -308,10 +323,11 @@ function updateDashboard() {
 }
 
 // ==========================================
-// CHECKLIST DE PREPARAÇÃO
+// 10. CHECKLIST
 // ==========================================
 function renderTimeline() {
     const ul = document.getElementById('timeline-steps');
+    if(!ul) return;
     ul.innerHTML = steps.map((s, i) => `
         <li class="${s.done ? 'done' : ''}" onclick="toggleStep(${i})">
             <strong>${s.text}</strong>
@@ -321,13 +337,15 @@ function renderTimeline() {
 }
 
 window.toggleStep = function(i) {
-    steps[i].done = !steps[i].done;
-    saveData();
-    renderTimeline();
+    if(steps[i]) {
+        steps[i].done = !steps[i].done;
+        saveData();
+        renderTimeline();
+    }
 };
 
 // ==========================================
-// CHAT IA
+// 11. CHAT IA
 // ==========================================
 const chatContainer = document.getElementById('chat-messages');
 
@@ -350,6 +368,7 @@ document.getElementById('chat-input').addEventListener('keypress', (e) => {
 });
 
 function addMessage(text, type) {
+    if(!chatContainer) return;
     const div = document.createElement('div');
     div.className = `chat-msg ${type}`;
     div.innerHTML = `<p>${text.replace(/\n/g, '<br>')}</p>`;
@@ -399,7 +418,7 @@ async function handleChat(msg) {
 }
 
 // ==========================================
-// CONFIGURAÇÕES (API KEY)
+// 12. CONFIGURAÇÕES (API KEY)
 // ==========================================
 function checkApiKey() {
     const key = localStorage.getItem('ib_groq_key');
@@ -410,4 +429,40 @@ function checkApiKey() {
     } else {
         document.getElementById('api-key-view').style.display = 'block';
         document.getElementById('api-key-active-view').style.display = 'none';
-        document.getElementById
+        document.getElementById('btn-remove-api').style.display = 'none';
+    }
+}
+
+document.getElementById('btn-save-api').addEventListener('click', () => {
+    const key = document.getElementById('input-api-key').value.trim();
+    if (key.startsWith('gsk_')) {
+        localStorage.setItem('ib_groq_key', key);
+        checkApiKey();
+    } else {
+        alert('Chave inválida. Deve começar com gsk_');
+    }
+});
+
+document.getElementById('btn-remove-api').addEventListener('click', () => {
+    localStorage.removeItem('ib_groq_key');
+    document.getElementById('input-api-key').value = '';
+    checkApiKey();
+});
+
+// ==========================================
+// 13. INICIALIZAÇÃO FINAL
+// ==========================================
+function init() {
+    renderSpeciesTable();
+    renderLotes();
+    updateDashboard();
+    renderTimeline();
+    checkApiKey();
+}
+
+// Garante que o DOM carregou antes de rodar
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
