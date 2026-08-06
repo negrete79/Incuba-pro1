@@ -1,15 +1,3 @@
-// ========== INICIALIZAÇÃO OFFLINE (SERVICE WORKER) ==========
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('Service Worker registrado. App funcionará offline!'))
-      .catch(err => console.log('Falha ao registrar SW:', err));
-  });
-}
-// =============================================================
-// LIMPEZA ÚNICA (Apague esta linha após abrir o app uma vez e cadastrar seu lote)
-localStorage.clear(); 
-
 // ==========================================
 // 1. REGISTRO DO SERVICE WORKER (PWA)
 // ==========================================
@@ -362,7 +350,6 @@ function updateDashboard() {
     document.getElementById('dash-temp').innerText = sp ? sp.temp : '--';
     document.getElementById('dash-humid').innerText = sp ? sp.umid + '%' : '--%';
 
-    // Cálculo seguro de datas splitando a string para evitar bugs de meia-noite/fuso
     const partes = ativo.dataInicio.split('-');
     const inicioDate = new Date(partes[0], partes[1] - 1, partes[2]);
     const hoje = new Date();
@@ -520,112 +507,98 @@ document.querySelectorAll('.trigger-btn').forEach(btn => {
 
 document.getElementById('btn-send-chat').addEventListener('click', () => {
     const input = document.getElementById('chat-input');
-    if (input.value.trim()) handleChat(input.value);
-    input.value = '';
+    if (input.value.trim()) {
+        handleChat(input.value.trim());
+        input.value = '';
+    }
 });
 
 document.getElementById('chat-input').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
         const input = document.getElementById('chat-input');
-        if (input.value.trim()) handleChat(input.value);
-        input.value = '';
+        if (input.value.trim()) {
+            handleChat(input.value.trim());
+            input.value = '';
+        }
     }
 });
 
-function addMessage(text, type) {
-    if (!chatContainer) return;
+function addMsg(text, sender) {
     const div = document.createElement('div');
-    div.className = 'chat-msg ' + type;
-    div.innerHTML = '<p>' + text.replace(/\n/g, '<br>') + '</p>';
+    div.className = 'chat-msg ' + sender;
+    div.innerHTML = `<p>${text}</p>`;
     chatContainer.appendChild(div);
     chatContainer.scrollTop = chatContainer.scrollHeight;
-}
-
-function getAppContext() {
-    const ativo = lotes.find(l => l.ativo);
-    if (!ativo) return "AVISO: O usuário NÃO possui nenhum lote ativo no aplicativo.";
-    
-    const sp = species.find(s => s.id === ativo.especieId);
-    const partes = ativo.dataInicio.split('-');
-    const inicioDate = new Date(partes[0], partes[1] - 1, partes[2]);
-    const hoje = new Date(); hoje.setHours(0,0,0,0); inicioDate.setHours(0,0,0,0);
-    const diaAtual = Math.floor((hoje.getTime() - inicioDate.getTime()) / (1000 * 60 * 60 * 24));
-    const diasFaltantes = Math.max(0, (sp ? sp.dias : 21) - diaAtual);
-    
-    let c = 'DADOS_DO_APP:\n';
-    c += 'Lote: ' + ativo.nome + '\n';
-    c += 'Especie: ' + (sp ? sp.nome : '?') + '\n';
-    c += 'Quantidade de Ovos: ' + ativo.qtd + '\n';
-    c += 'Temperatura Alvo: ' + (sp ? sp.temp + '°C' : '?') + '\n';
-    c += 'Umidade Alvo: ' + (sp ? sp.umid + '%' : '?') + '\n';
-    c += 'Dia Atual: ' + diaAtual + '\n';
-    c += 'Dias Restantes: ' + diasFaltantes + '\n';
-    c += 'FIM_DADOS.';
-    
-    return c;
+    if (sender === 'user') playSound('send');
+    if (sender === 'bot') playSound('receive');
 }
 
 async function handleChat(msg) {
-    desbloquearAudio();
-    playSound('send');
-    addMessage(msg, 'user');
+    addMsg(msg, 'user');
+    const apiKey = localStorage.getItem('ib_api_key');
     
-    const apiKey = localStorage.getItem('ib_groq_key');
     if (!apiKey) {
-        setTimeout(() => {
-            playSound('receive');
-            addMessage("Configure a chave API do Groq no ícone ⚙️ para ativar a IA.", 'bot');
-        }, 500);
+        addMsg('⚠️ Chave API não configurada. Vá em Configurações e adicione sua chave do Groq para usar a IA.', 'bot');
         return;
     }
 
-    try {
-        const contextData = getAppContext();
+    const ativo = lotes.find(l => l.ativo);
+    const sp = ativo ? species.find(s => s.id === ativo.especieId) : null;
+    const contextoBase = `Você é um especialista em incubação de ovos. Responda de forma clara e objetiva em português do Brasil.`;
+    let contextoLote = '';
+    
+    if (ativo && sp) {
+        const partes = ativo.dataInicio.split('-');
+        const inicioDate = new Date(partes[0], partes[1] - 1, partes[2]);
+        const hoje = new Date(); hoje.setHours(0,0,0,0); inicioDate.setHours(0,0,0,0);
+        const diaAtual = Math.floor((hoje - inicioDate) / (1000 * 60 * 60 * 24));
+        contextoLote = ` Lote atual: "${ativo.nome}", Espécie: ${sp.nome}, Dia de incubação: ${diaAtual} de ${sp.dias}, Temperatura ideal: ${sp.temp}°C, Umidade ideal: ${sp.umid}%.`;
+    } else {
+        contextoLote = ' Nenhum lote ativo no momento.';
+    }
 
+    addMsg('⏳ Pensando...', 'bot');
+
+    try {
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json', 
-                'Authorization': 'Bearer ' + apiKey 
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + apiKey
             },
             body: JSON.stringify({
                 model: 'llama-3.1-8b-instant',
                 messages: [
-                    { 
-                        role: 'system', 
-                        content: 'Você é um assistente de incubação. REGRAS ESTRITAS: 1. Leia os DADOS_DO_APP. 2. NUNCA invente números. 3. Use EXATAMENTE os valores de temperatura, umidade e ovos que estão em DADOS_DO_APP. 4. Responda em português do Brasil.\n\n' + contextData
-                    },
+                    { role: 'system', content: contextoBase + contextoLote },
                     { role: 'user', content: msg }
                 ],
-                temperature: 0.1,
-                max_tokens: 300
+                temperature: 0.7,
+                max_tokens: 500
             })
         });
 
         const data = await response.json();
-        playSound('receive');
+        chatContainer.removeChild(chatContainer.lastChild); // remove "Pensando..."
         
-        if (data.error) {
-            addMessage('Erro: ' + data.error.message, 'bot');
-        } else if (data.choices && data.choices[0]) {
-            addMessage(data.choices[0].message.content, 'bot');
+        if (data.choices && data.choices[0]) {
+            addMsg(data.choices[0].message.content, 'bot');
         } else {
-            addMessage('Sem resposta.', 'bot');
+            addMsg('Erro na resposta da IA. Verifique sua chave API.', 'bot');
         }
-    } catch (error) {
-        playSound('receive');
-        addMessage('Erro de conexão.', 'bot');
+    } catch (e) {
+        chatContainer.removeChild(chatContainer.lastChild); // remove "Pensando..."
+        addMsg('❌ Erro de conexão. Verifique sua internet ou chave API.', 'bot');
     }
 }
 
 // ==========================================
-// 13. CONFIGURAÇÕES
+// 13. CONFIGURAÇÕES API
 // ==========================================
-function checkApiKey() {
-    const key = localStorage.getItem('ib_groq_key');
+function updateApiView() {
+    const key = localStorage.getItem('ib_api_key');
     if (key) {
         document.getElementById('api-key-view').style.display = 'none';
-        document.getElementById('api-key-active-view').style.display = 'block';
+        document.getElementById('api-key-active-view').style.display = 'flex';
         document.getElementById('btn-remove-api').style.display = 'block';
     } else {
         document.getElementById('api-key-view').style.display = 'block';
@@ -637,32 +610,39 @@ function checkApiKey() {
 document.getElementById('btn-save-api').addEventListener('click', () => {
     const key = document.getElementById('input-api-key').value.trim();
     if (key.startsWith('gsk_')) {
-        localStorage.setItem('ib_groq_key', key);
-        checkApiKey();
+        localStorage.setItem('ib_api_key', key);
+        updateApiView();
+        closeModal('modal-settings');
     } else {
         alert('Chave inválida. Deve começar com gsk_');
     }
 });
 
 document.getElementById('btn-remove-api').addEventListener('click', () => {
-    localStorage.removeItem('ib_groq_key');
-    document.getElementById('input-api-key').value = '';
-    checkApiKey();
+    if (confirm('Remover a chave API?')) {
+        localStorage.removeItem('ib_api_key');
+        document.getElementById('input-api-key').value = '';
+        updateApiView();
+    }
 });
 
 // ==========================================
 // 14. INICIALIZAÇÃO
 // ==========================================
 function init() {
+    const savedSpecies = localStorage.getItem('ib_species');
+    const savedLotes = localStorage.getItem('ib_lotes');
+    const savedSteps = localStorage.getItem('ib_steps');
+    
+    if (savedSpecies) species = JSON.parse(savedSpecies);
+    if (savedLotes) lotes = JSON.parse(savedLotes);
+    if (savedSteps) steps = JSON.parse(savedSteps);
+
     renderSpeciesTable();
     renderLotes();
-    updateDashboard();
     renderTimeline();
-    checkApiKey();
+    updateDashboard();
+    updateApiView();
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+init();
